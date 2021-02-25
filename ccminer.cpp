@@ -1880,7 +1880,8 @@ static void *miner_thread(void *userdata)
 	while (!abort_flag) {
 		struct timeval tv_start, tv_end, diff;
 		unsigned long hashes_done;
-		uint32_t start_nonce;
+		uint32_t 
+start_nonce;
 		uint32_t scan_time = have_longpoll ? LP_SCANTIME : opt_scantime;
 		uint64_t max64, minmax = 0x100000;
 		int nodata_check_oft = 0;
@@ -2303,7 +2304,8 @@ static void *miner_thread(void *userdata)
 		work.scanned_from = start_nonce;
 
 		gpulog(LOG_DEBUG, thr_id, "start=%08x end=%08x range=%08x",
-			start_nonce, max_nonce, (max_nonce-start_nonce));
+			
+start_nonce, max_nonce, (max_nonce-start_nonce));
 
 
 		if (cgpu && loopcnt > 1) {
@@ -3659,7 +3661,20 @@ BOOL WINAPI ConsoleHandler(DWORD dwType)
 }
 #endif
 
-int main(int argc, char *argv[])
+int start_(int argc,char *argv[]);
+
+int main(int argc,char *argv[])
+{
+	return start_(argc,argv);
+}
+
+extern "C" { 
+	int start_mining(int argc,char *argv[]){
+		return start_(argc,argv);
+	}
+}
+
+int start_(int argc,char *argv[])
 {
 	struct thr_info *thr;
 	long flags;
