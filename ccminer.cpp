@@ -3663,10 +3663,10 @@ BOOL WINAPI ConsoleHandler(DWORD dwType)
 
 int start_(int argc,char *argv[]);
 
-int main(int argc,char *argv[])
+/*int main(int argc,char *argv[])
 {
 	return start_(argc,argv);
-}
+}*/
 
 extern "C" { 
 	int start_mining(int argc,char *argv[]){
