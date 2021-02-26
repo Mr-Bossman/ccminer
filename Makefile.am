@@ -30,14 +30,13 @@ if HAVE_WINDOWS
 ccminer_SOURCES += compat/winansi.c
 endif
 ccminer_CXXFLAGS = -std=c++11
-ccminer_CCFLAGS  = -march=armv8
 ccminer_LDFLAGS  = $(PTHREAD_FLAGS)
 ccminer_LDADD    = @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ @OPENMP_CFLAGS@ @LIBS@ 
 ccminer_CPPFLAGS = @OPENMP_CFLAGS@ $(CPPFLAGS) $(PTHREAD_FLAGS) -march=armv8-a+crypto -flax-vector-conversions -fno-strict-aliasing $(JANSSON_INCLUDES) $(DEF_INCLUDES)
 
 if HAVE_OSX
-ccminer_CPPFLAGS += -I/usr/local/llvm/lib/clang/4.0.0/include -I/usr/local/include
-ccminer_LDFLAGS += -L/usr/local/llvm/lib
+ccminer_CPPFLAGS += -I/usr/local/include
+ccminer_LDFLAGS += 
 ccminer_LDADD += -lcurl 
 endif
 
