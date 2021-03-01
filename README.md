@@ -39,4 +39,7 @@ Compile on Android
 ------------------
 
 Please see [README-ANDROID](./README-ANDROID.md) file
-use thisfor the libs https://github.com/jasonacox/Build-OpenSSL-cURL
+
+use this for the libs https://github.com/jasonacox/Build-OpenSSL-cURL
+
+and this https://github.com/m2Lower/build-libjansson-iOS
