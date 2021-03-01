@@ -37,7 +37,7 @@ ccminer_CPPFLAGS = @OPENMP_CFLAGS@ $(CPPFLAGS) $(PTHREAD_FLAGS) -march=armv8-a+c
 if HAVE_OSX
 ccminer_CPPFLAGS += -I/usr/local/include
 ccminer_LDFLAGS += 
-ccminer_LDADD += -lcurl 
+ccminer_LDADD += -lcurl -lssl -lnghttp2
 endif
 
 if HAVE_ANDROID

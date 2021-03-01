@@ -39,3 +39,4 @@ Compile on Android
 ------------------
 
 Please see [README-ANDROID](./README-ANDROID.md) file
+use thisfor the libs https://github.com/jasonacox/Build-OpenSSL-cURL
