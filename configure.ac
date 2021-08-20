@@ -63,7 +63,7 @@ case $target in
     PTHREAD_FLAGS=""
     WS2_LIBS="-lws2_32"
     ;;
-  *86*-apple-darwin*)
+  *apple-darwin*)
     have_osx=true
     PTHREAD_FLAGS=""
     ;;
@@ -77,7 +77,6 @@ AC_CHECK_LIB([pthread], [pthread_create], PTHREAD_LIBS="-lpthread",
 ))))
 
 AC_CHECK_LIB([z],[gzopen], [], [])
-AC_CHECK_LIB([ssl],[SSL_free], [], [AC_MSG_ERROR([OpenSSL library required])])
 AC_CHECK_LIB([crypto],[EVP_DigestFinal_ex], [], [AC_MSG_ERROR([OpenSSL library required])])
 
 AM_CONDITIONAL([WANT_JANSSON], [test x$request_jansson = xtrue])
@@ -102,8 +101,6 @@ else
 	JANSSON_LIBS=-ljansson
 fi
 
-LIBCURL_CHECK_CONFIG(, 7.15.2, ,
-  [AC_MSG_ERROR([Missing required libcurl >= 7.15.2])])
 
 AC_SUBST(JANSSON_LIBS)
 AC_SUBST(PTHREAD_FLAGS)

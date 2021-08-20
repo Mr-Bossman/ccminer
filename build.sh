@@ -4,13 +4,14 @@
 
 # export PATH="$PATH:/usr/local/cuda/bin/"
 
+
 make distclean || echo clean
 
 rm -f Makefile.in
 rm -f config.status
 ./autogen.sh || echo done
-
+test=`pwd`
 # CFLAGS="-O2" ./configure
-./configure.sh
+./configure
 
 make
