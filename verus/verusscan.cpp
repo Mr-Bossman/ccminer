@@ -1,4 +1,4 @@
-/**
+/*
 * Equihash solver interface for ccminer (compatible with linux and windows)
 * Solver taken from nheqminer, by djeZo (and NiceHash)
 * tpruvot - 2017 (GPL v3)
@@ -76,11 +76,18 @@ void GenNewCLKey(unsigned char *seedBytes32, __m128i *keyback)
 
 extern "C" void FixKey(uint32_t *fixrand, uint32_t *fixrandex, __m128i *keyback, __m128i *keyback_master)
 {
+
+#pragma clang loop unroll(full)
 	for (int i = 0; i < 32; i++)
 	{
 		keyback[fixrand[i]] = keyback_master[fixrand[i]];
 		keyback[fixrandex[i]] = keyback_master[fixrandex[i]];
+		//printf("%" PRIu32 " %" PRIu32 "\n",fixrand[i],fixrandex[i]);
 	}
+	//printf("--------------\n");
+	//note - I tried memcpy(keyback,keyback_master,VERUS_KEY_SIZE) instead of this loop
+	//and while it worked  it was noticeably slower to copy those 8832 bytes 
+	//than to just do the random 64 array insertions above.
 
 }
 
@@ -149,16 +156,25 @@ extern "C" void Verus2hash(unsigned char *hash, unsigned char *curBuf, uint32_t 
 	uint64_t intermediate;
 	((uint32_t*)&curBuf[0])[8] = nonce;
 
-	if(version == 3)
-		intermediate = verusclhash_port2_1(data_key,curBuf, 511, fixrand, fixrandex);
-	else
-		intermediate = verusclhash_port2_2(data_key, curBuf, 511, fixrand, fixrandex);
+	//if(version == 3)
+	//	intermediate = verusclhash_port2_1(data_key,curBuf, 511, fixrand, fixrandex);
+	//else
+	//	intermediate = verusclhash_port2_2(data_key, curBuf, 511, fixrand, fixrandex);
+
+	intermediate = verusclhash_port2_2(data_key, curBuf, 511, fixrand, fixrandex);
+
+	__builtin_prefetch(&data_key[fixrand[0]],1,0);
+	__builtin_prefetch(&data_key[fixrandex[0]],1,0);
+	__builtin_prefetch(&data_key_master[fixrand[0]],0,0);
+	__builtin_prefetch(&data_key_master[fixrandex[0]],0,0);
+
 	//FillExtra
+
 	memcpy(curBuf + 47, &intermediate, 8);
 	memcpy(curBuf + 55, &intermediate, 8);
 	memcpy(curBuf + 63, &intermediate, 1);
 	intermediate &= 511;
-  haraka512_keyed(hash, curBuf, data_key + intermediate);
+ 	haraka512_keyed(hash, curBuf, data_key + intermediate);
 	FixKey(fixrand, fixrandex, data_key, data_key_master);
 }
 #ifdef _WIN32
@@ -184,8 +200,10 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 	//posix_memalign((void**)&data_key,32,VERUS_KEY_SIZE);
 
 	//__m128i *data_key_master = (__m128i *)malloc(VERUS_KEY_SIZE);
-	__m128i data_key[VERUS_KEY_SIZE128] = { 0 }; // 552 required
-	__m128i data_key_master[VERUS_KEY_SIZE128] = { 0 };
+	//__m128i  data_key[VERUS_KEY_SIZE128] __attribute__ ((aligned(64))) = { 0 }  ; // 552 required
+	//__m128i  data_key_master[VERUS_KEY_SIZE128] __attribute__ ((aligned(64))) = { 0 } ;
+	__m128i  data_key[VERUS_KEY_SIZE128] __attribute__ ((aligned))  = { 0 }  ; // 552 required
+	__m128i  data_key_master[VERUS_KEY_SIZE128] __attribute__ ((aligned))  = { 0 } ;
 	uint32_t nonce_buf = 0;
 	uint32_t fixrand[32];
 	uint32_t fixrandex[32];

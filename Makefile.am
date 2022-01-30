@@ -40,8 +40,6 @@ ccminer_LDFLAGS += -L/usr/local/llvm/lib
 ccminer_LDADD += -lomp
 endif
 
-if HAVE_ANDROID
-ccminer_LDADD += -llog
-endif
+
 
 

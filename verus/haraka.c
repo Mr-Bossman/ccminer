@@ -29,10 +29,10 @@ Optimized Implementations for Haraka256 and Haraka512
 //#include <stdint.h>
 
 
-uint8x16_t _mm_aesenc_si128 (uint8x16_t a, uint8x16_t RoundKey)
-{
-    return vaesmcq_u8(vaeseq_u8(a, (uint8x16_t){})) ^ RoundKey;
-}
+//uint8x16_t _mm_aesenc_si128 (uint8x16_t a, uint8x16_t RoundKey)
+//{
+//   return vaesmcq_u8(vaeseq_u8(a, (uint8x16_t){})) ^ RoundKey;
+//}
 typedef unsigned int uint32_t;
 
 

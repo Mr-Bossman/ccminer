@@ -48,7 +48,7 @@
 //#include <x86intrin.h>
 //#include "arm_neon.h"
 
-#include "SSE2NEON.h"
+#   include "sse2neon.h"
 //#include "softaesnc.h"
 // typedef int32x4_t __m128i;
 
@@ -511,13 +511,11 @@ __m128i __verusclmulwithoutreduction64alignedrepeat_port2_2(__m128i *randomsourc
 			__m128i *rc = prand;
 			uint64_t aesround = 0;
 			__m128i onekey;
-
-#pragma clang loop unroll(full)
 			for ( int count = 1; count <= 8; count++ )
 			{
-				onekey = _mm_load_si128_emu(rc++);
 				if ( rounds >= 0 )
 				{
+				onekey = _mm_load_si128_emu(rc++);
 				//printf("selector %" PRIu64 "\n", selector);
 
 						if (selector & ((uint64_t)0x10000000 << rounds))
@@ -539,7 +537,7 @@ __m128i __verusclmulwithoutreduction64alignedrepeat_port2_2(__m128i *randomsourc
 							acc = _mm_xor_si128_emu(temp2, acc);
 						}
 				rounds--;
-				}
+				{
 			} 
 
 			const __m128i tempa1 = _mm_load_si128_emu(prand);

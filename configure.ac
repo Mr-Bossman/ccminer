@@ -86,15 +86,6 @@ AM_CONDITIONAL([HAVE_OSX], [test x$have_osx = xtrue])
 AM_CONDITIONAL([ARCH_x86], [test x$have_x86 = xtrue])
 AM_CONDITIONAL([ARCH_x86_64], [test x$have_x86_64 = xtrue])
 
-# ANDROID
-dnl Check for Android system
-AC_MSG_CHECKING([for an Android system])
-AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#ifndef __ANDROID__
-#error __ANDROID__ not defined
-#endif
-]],[[;]])], [HAVE_ANDROID="yes"; AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
-AM_CONDITIONAL(HAVE_ANDROID, test x$HAVE_ANDROID != x)
-
 if test x$request_jansson = xtrue
 then
 	JANSSON_LIBS="compat/jansson/libjansson.a"

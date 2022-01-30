@@ -91,7 +91,8 @@ void aesenc(unsigned char *s, const unsigned char *rk)
  tmp1 =  vld1q_u8(s);
  tmp2 = vld1q_u8(rk);
 
- tmp3 = vaesmcq_u8(vaeseq_u8(tmp1, (uint8x16_t){})) ^ tmp2;
+// tmp3 = vaesmcq_u8(vaeseq_u8(tmp1, (uint8x16_t){})) ^ tmp2;
+   tmp3 = _mm_aesenc_si128(tmp1, tmp2);
   
   ((uint64_t*)&s[0])[0] = (uint64_t)vgetq_lane_u64(tmp3,0);
   ((uint64_t*)&s[0])[1] = (uint64_t)vgetq_lane_u64(tmp3,1);
@@ -124,6 +125,16 @@ void unpacklo32(unsigned char *t, unsigned char *a, unsigned char *b)
     memcpy(t, tmp, 16);
 }
 
+void unpacklo32_test(unsigned char *t, unsigned char *a, unsigned char *b) 
+{
+	uint8x16_t tmp1;
+	tmp1 = _mm_unpacklo_epi32(vld1q_u8(a), vld1q_u8(b));
+	((uint64_t*)&t[0])[0] = vgetq_lane_u64(tmp1,0);
+	((uint64_t*)&t[0])[1] = vgetq_lane_u64(tmp1,1);
+}
+
+
+
 // Simulate _mm_unpackhi_epi32
 void unpackhi32(unsigned char *t, unsigned char *a, unsigned char *b) 
 {
@@ -133,6 +144,15 @@ void unpackhi32(unsigned char *t, unsigned char *a, unsigned char *b)
     memcpy(tmp + 8, a + 12, 4);
     memcpy(tmp + 12, b + 12, 4);
     memcpy(t, tmp, 16);
+}
+
+void unpackhi32_test(unsigned char *t, unsigned char *a, unsigned char *b) 
+{
+	uint8x16_t tmp1;
+	tmp1 = _mm_unpackhi_epi32(vld1q_u8(a), vld1q_u8(b));
+	((uint64_t*)&t[0])[0] = vgetq_lane_u64(tmp1,0);
+	((uint64_t*)&t[0])[1] = vgetq_lane_u64(tmp1,1);
+
 }
 
 void load_constants_port()
@@ -228,16 +248,46 @@ void haraka_S(unsigned char *out, unsigned long long outlen,
     }
 }
 
+void mixing(unsigned char *a) {
+
+	uint8x16x4_t longstring;
+	uint8x16_t tmp;
+	
+	longstring.val[0] = vld1q_u8(a);
+	longstring.val[1] = vld1q_u8(a+16);
+	longstring.val[2] = vld1q_u8(a+32);
+	longstring.val[3] = vld1q_u8(a+48);
+	tmp = _mm_unpacklo_epi32(longstring.val[0], longstring.val[1]);        	/* unpacklo32_test(tmp, s, s+16 ) */
+	longstring.val[0] = _mm_unpackhi_epi32(longstring.val[0],longstring.val[1]);        /* unpackhi32_test(s , s, s+16 ) */
+	longstring.val[1] = _mm_unpacklo_epi32(longstring.val[2],longstring.val[3]);        /* unpacklo32_test(s + 16, s + 32, s +48 ) */
+	longstring.val[2] = _mm_unpackhi_epi32(longstring.val[2],longstring.val[3]);        /* unpackhi32_test(s + 32, s + 32, s +48 ) */
+	longstring.val[3] = _mm_unpacklo_epi32(longstring.val[0],longstring.val[2]);	/* unpacklo32_test(s + 48, s, s + 32 )     */
+	longstring.val[0] = _mm_unpackhi_epi32(longstring.val[0],longstring.val[2]);	/* unpackhi32_test(s, s, s + 32)	*/
+	longstring.val[2] = _mm_unpackhi_epi32(longstring.val[1],tmp);		/* unpackhi32_test( s + 32, s + 16, tmp ) */
+	longstring.val[1] = _mm_unpacklo_epi32(longstring.val[1],tmp);		/* unpacklo32_test( s + 16, s + 16, tmp ) */
+
+	((uint64_t*)&a[0])[0] = vgetq_lane_u64(longstring.val[0],0);
+	((uint64_t*)&a[0])[1] = vgetq_lane_u64(longstring.val[0],1);
+	((uint64_t*)&a[0])[2] = vgetq_lane_u64(longstring.val[1],0);
+	((uint64_t*)&a[0])[3] = vgetq_lane_u64(longstring.val[1],1);
+	((uint64_t*)&a[0])[4] = vgetq_lane_u64(longstring.val[2],0);
+	((uint64_t*)&a[0])[5] = vgetq_lane_u64(longstring.val[2],1);
+	((uint64_t*)&a[0])[6] = vgetq_lane_u64(longstring.val[3],0);
+	((uint64_t*)&a[0])[7] = vgetq_lane_u64(longstring.val[3],1);
+		
+}
+
 void haraka512_perm(unsigned char *out, const unsigned char *in) 
 {
     int i, j;
 
     unsigned char s[64], tmp[16];
 
-    memcpy(s, in, 16);
-    memcpy(s + 16, in + 16, 16);
-    memcpy(s + 32, in + 32, 16);
-    memcpy(s + 48, in + 48, 16);
+    memcpy(s, in, 64);
+    //memcpy(s, in, 16);
+    //memcpy(s + 16, in + 16, 16);
+    //memcpy(s + 32, in + 32, 16);
+    //memcpy(s + 48, in + 48, 16);
 
     for (i = 0; i < 5; ++i) {
         // aes round(s)
@@ -248,19 +298,20 @@ void haraka512_perm(unsigned char *out, const unsigned char *in)
             aesenc(s + 48, rc[4*2*i + 4*j + 3]);
         }
 
-        // mixing
-        unpacklo32(tmp, s, s + 16);
-        unpackhi32(s, s, s + 16);
-        unpacklo32(s + 16, s + 32, s + 48);
-        unpackhi32(s + 32, s + 32, s + 48);
-        unpacklo32(s + 48, s, s + 32);
-        unpackhi32(s, s, s + 32);
-        unpackhi32(s + 32, s + 16, tmp);
-        unpacklo32(s + 16, s + 16, tmp);
+        //mixing(s);  
+        unpacklo32_test(tmp, s, s + 16);
+        unpackhi32_test(s, s, s + 16);
+        unpacklo32_test(s + 16, s + 32, s + 48);
+        unpackhi32_test(s + 32, s + 32, s + 48);
+        unpacklo32_test(s + 48, s, s + 32);
+        unpackhi32_test(s, s, s + 32);
+        unpackhi32_test(s + 32, s + 16, tmp);
+        unpacklo32_test(s + 16, s + 16, tmp);
     }
 
     memcpy(out, s, 64);
 }
+
 
 void haraka512_perm_keyed(unsigned char *out, const unsigned char *in, const __m128i *rc) 
 {
@@ -268,10 +319,11 @@ void haraka512_perm_keyed(unsigned char *out, const unsigned char *in, const __m
 
     unsigned char s[64], tmp[16];
 
-    memcpy(s, in, 16);
-    memcpy(s + 16, in + 16, 16);
-    memcpy(s + 32, in + 32, 16);
-    memcpy(s + 48, in + 48, 16);
+    memcpy(s, in, 64);
+    //memcpy(s, in, 16);
+    //memcpy(s + 16, in + 16, 16);
+    //memcpy(s + 32, in + 32, 16);
+    //memcpy(s + 48, in + 48, 16);
 
     for (i = 0; i < 5; ++i) {
         // aes round(s)
@@ -282,15 +334,15 @@ void haraka512_perm_keyed(unsigned char *out, const unsigned char *in, const __m
             aesenc(s + 48, (const unsigned char *)&rc[4*2*i + 4*j + 3]);
         }
 
-        // mixing
-        unpacklo32(tmp, s, s + 16);
-        unpackhi32(s, s, s + 16);
-        unpacklo32(s + 16, s + 32, s + 48);
-        unpackhi32(s + 32, s + 32, s + 48);
-        unpacklo32(s + 48, s, s + 32);
-        unpackhi32(s, s, s + 32);
-        unpackhi32(s + 32, s + 16, tmp);
-        unpacklo32(s + 16, s + 16, tmp);
+        //mixing(s); 
+        unpacklo32_test(tmp, s, s + 16);
+        unpackhi32_test(s, s, s + 16);
+        unpacklo32_test(s + 16, s + 32, s + 48);
+        unpackhi32_test(s + 32, s + 32, s + 48);
+        unpacklo32_test(s + 48, s, s + 32);
+        unpackhi32_test(s, s, s + 32);
+        unpackhi32_test(s + 32, s + 16, tmp);
+        unpacklo32_test(s + 16, s + 16, tmp);
     }
 
     memcpy(out, s, 64);
@@ -340,10 +392,11 @@ void haraka512_perm_zero(unsigned char *out, const unsigned char *in)
 
     unsigned char s[64], tmp[16];
 
-    memcpy(s, in, 16);
-    memcpy(s + 16, in + 16, 16);
-    memcpy(s + 32, in + 32, 16);
-    memcpy(s + 48, in + 48, 16);
+    memcpy(s, in, 64);
+    //memcpy(s, in, 16);
+    //memcpy(s + 16, in + 16, 16);
+    //memcpy(s + 32, in + 32, 16);
+    //memcpy(s + 48, in + 48, 16);
 
     for (i = 0; i < 5; ++i) {
         // aes round(s)
@@ -354,15 +407,15 @@ void haraka512_perm_zero(unsigned char *out, const unsigned char *in)
             aesenc(s + 48, rc0[4*2*i + 4*j + 3]);
         }
 
-        // mixing
-        unpacklo32(tmp, s, s + 16);
-        unpackhi32(s, s, s + 16);
-        unpacklo32(s + 16, s + 32, s + 48);
-        unpackhi32(s + 32, s + 32, s + 48);
-        unpacklo32(s + 48, s, s + 32);
-        unpackhi32(s, s, s + 32);
-        unpackhi32(s + 32, s + 16, tmp);
-        unpacklo32(s + 16, s + 16, tmp);
+	// mixing(s);
+        unpacklo32_test(tmp, s, s + 16);
+        unpackhi32_test(s, s, s + 16);
+        unpacklo32_test(s + 16, s + 32, s + 48);
+        unpackhi32_test(s + 32, s + 32, s + 48);
+        unpacklo32_test(s + 48, s, s + 32);
+        unpackhi32_test(s, s, s + 32);
+        unpackhi32_test(s + 32, s + 16, tmp);
+        unpacklo32_test(s + 16, s + 16, tmp);
     }
 
     memcpy(out, s, 64);
@@ -393,8 +446,9 @@ void haraka256_port(unsigned char *out, const unsigned char *in)
 
     unsigned char s[32], tmp[16];
 
-    memcpy(s, in, 16);
-    memcpy(s + 16, in + 16, 16);
+    memcpy(s, in, 32);
+    //memcpy(s, in, 16);
+    //memcpy(s + 16, in + 16, 16);
 
     for (i = 0; i < 5; ++i) {
         // aes round(s)
@@ -404,8 +458,8 @@ void haraka256_port(unsigned char *out, const unsigned char *in)
         }
 
         // mixing
-        unpacklo32(tmp, s, s + 16);
-        unpackhi32(s + 16, s, s + 16);
+        unpacklo32_test(tmp, s, s + 16);
+        unpackhi32_test(s + 16, s, s + 16);
         memcpy(s, tmp, 16);
     }
 
@@ -421,8 +475,9 @@ void haraka256_sk(unsigned char *out, const unsigned char *in)
 
     unsigned char s[32], tmp[16];
 
-    memcpy(s, in, 16);
-    memcpy(s + 16, in + 16, 16);
+    memcpy(s, in, 32);
+    //memcpy(s, in, 16);
+    //memcpy(s + 16, in + 16, 16);
 
     for (i = 0; i < 5; ++i) {
         // aes round(s)
@@ -432,8 +487,8 @@ void haraka256_sk(unsigned char *out, const unsigned char *in)
         }
 
         // mixing
-        unpacklo32(tmp, s, s + 16);
-        unpackhi32(s + 16, s, s + 16);
+        unpacklo32_test(tmp, s, s + 16);
+        unpackhi32_test(s + 16, s, s + 16);
         memcpy(s, tmp, 16);
     }
 

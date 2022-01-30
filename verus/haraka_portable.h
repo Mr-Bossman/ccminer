@@ -4,7 +4,7 @@
 //#include "immintrin.h"
 #include "SSE2NEON.h"
 #include "arm_neon.h"
-typedef int32x4_t __m128i;
+// typedef int32x4_t __m128i;
 
 #define NUMROUNDS 5
 
