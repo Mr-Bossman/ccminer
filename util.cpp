@@ -36,6 +36,10 @@
 #include "miner.h"
 #include "elist.h"
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+
 #include "crypto/xmr-rpc.h"
 
 extern pthread_mutex_t stratum_sock_lock;
