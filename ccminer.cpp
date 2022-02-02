@@ -299,6 +299,7 @@ Options:\n\
 			tribus      Denarius\n\
 			vanilla     Blake256-8 (VNL)\n\
 			veltor      Thorsriddle streebog\n\
+			verus       Veruscoin\n\
 			whirlcoin   Old Whirlcoin (Whirlpool algo)\n\
 			whirlpool   Whirlpool algo\n\
 			x11evo      Permuted x11 (Revolver)\n\
@@ -685,6 +686,11 @@ static void calc_network_diff(struct work *work)
 		return;
 	}
 
+	if (opt_algo == ALGO_VERUS) {
+		net_diff = verus_network_diff(work);
+		return;
+	}
+
 	uint32_t bits = (nbits & 0xffffff);
 	int16_t shift = (swab32(nbits) & 0xff); // 0x1c = 28
 
@@ -920,8 +926,12 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		struct work submit_work;
 		memcpy(&submit_work, work, sizeof(struct work));
 		//if (!hashlog_already_submittted(submit_work.job_id, submit_work.nonces[idnonce])) {
-			if (equi_stratum_submit(pool, &submit_work))
-				hashlog_remember_submit(&submit_work, submit_work.nonces[idnonce]);
+			if(opt_algo == ALGO_VERUS)
+				if (verus_stratum_submit(pool, &submit_work))
+					hashlog_remember_submit(&submit_work, submit_work.nonces[idnonce]);
+			else
+				if (equi_stratum_submit(pool, &submit_work))
+					hashlog_remember_submit(&submit_work, submit_work.nonces[idnonce]);
 			stratum.job.shares_count++;
 		//}
 		return true;
@@ -1614,7 +1624,7 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 #endif
 			sha256d(merkle_root, merkle_root, 64);
 	}
-	
+
 	/* Increment extranonce2 */
 	for (i = 0; i < (int)sctx->xnonce2_size && !++sctx->job.xnonce2[i]; i++);
 
@@ -1650,6 +1660,11 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		memcpy(&work->data[9], sctx->job.coinbase, 32+32); // merkle [9..16] + reserved
 		work->data[25] = le32dec(sctx->job.ntime);
 		work->data[26] = le32dec(sctx->job.nbits);
+	} else if (opt_algo == ALGO_VERUS) {
+		memcpy(&work->data[9], sctx->job.coinbase, 32+32); // merkle [9..16] + reserved
+		work->data[25] = le32dec(sctx->job.ntime);
+		work->data[26] = le32dec(sctx->job.nbits);
+		work->hash_ver = sctx->job.hash_ver;
 		memcpy(&work->data[27], sctx->xnonce1, sctx->xnonce1_size & 0x1F); // pool extranonce
 		work->data[35] = 0x80;
 		//applog_hex(work->data, 140);
@@ -1759,6 +1774,9 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			break;
 		case ALGO_EQUIHASH:
 			equi_work_set_target(work, sctx->job.diff / opt_difficulty);
+			break;
+		case ALGO_VERUS:
+			verus_work_set_target(work, sctx->job.diff / opt_difficulty);
 			break;
 		default:
 			work_set_target(work, sctx->job.diff / opt_difficulty);
@@ -1937,6 +1955,9 @@ static void *miner_thread(void *userdata)
 		} else if (opt_algo == ALGO_EQUIHASH) {
 			nonceptr = &work.data[EQNONCE_OFFSET]; // 27 is pool extranonce (256bits nonce space)
 			wcmplen = 4+32+32;
+		} else if (opt_algo == ALGO_VERUS) {
+			nonceptr = &work.data[EQNONCE_OFFSET]; // 27 is pool extranonce (256bits nonce space)
+			wcmplen = 4+32+32;
 		}
 
 		if (have_stratum) {
@@ -2072,6 +2093,9 @@ static void *miner_thread(void *userdata)
 		} else if (opt_algo == ALGO_EQUIHASH) {
 			nonceptr[1]++;
 			nonceptr[1] |= thr_id << 24;
+		} else if (opt_algo == ALGO_VERUS) {
+			nonceptr[1]++;
+			nonceptr[2] |= thr_id;  //try  was nonceptr[1] |= thr_id << 24 monkins edit
 			//applog_hex(&work.data[27], 32);
 		} else if (opt_algo == ALGO_WILDKECCAK) {
 			//nonceptr[1] += 1;
@@ -2362,9 +2386,11 @@ static void *miner_thread(void *userdata)
 		gettimeofday(&tv_start, NULL);
 
 		// check (and reset) previous errors
+		/*
 		cudaError_t err = cudaGetLastError();
 		if (err != cudaSuccess && !opt_quiet)
 			gpulog(LOG_WARNING, thr_id, "%s", cudaGetErrorString(err));
+*/
 
 		work.valid_nonces = 0;
 
@@ -2549,6 +2575,9 @@ static void *miner_thread(void *userdata)
 		case ALGO_VELTOR:
 			rc = scanhash_veltor(thr_id, &work, max_nonce, &hashes_done);
 			break;
+		case ALGO_VERUS:
+			rc = scanhash_verus(thr_id, &work, max_nonce, &hashes_done);
+			break;
 		case ALGO_WHIRLCOIN:
 		case ALGO_WHIRLPOOL:
 			rc = scanhash_whirl(thr_id, &work, max_nonce, &hashes_done);
@@ -2689,7 +2718,7 @@ static void *miner_thread(void *userdata)
 		}
 
 		// only required to debug purpose
-		if (opt_debug && check_dups && opt_algo != ALGO_DECRED && opt_algo != ALGO_EQUIHASH && opt_algo != ALGO_SIA)
+		if (opt_debug && check_dups && opt_algo != ALGO_DECRED && opt_algo != ALGO_EQUIHASH && opt_algo != ALGO_SIA && opt_algo != ALGO_VERUS)
 			hashlog_remember_scan_range(&work);
 
 		/* output */
@@ -3598,6 +3627,7 @@ void parse_arg(int key, char *arg)
 	case 1074: /* --keep-clocks */
 		opt_keep_clocks = true;
 		break;
+	#if 0
 	case 1075: /* --tlimit */
 		{
 			char *pch = strtok(arg,",");
@@ -3630,6 +3660,7 @@ void parse_arg(int key, char *arg)
 			}
 		}
 		break;
+	#endif
 	case 1005:
 		opt_benchmark = true;
 		want_longpoll = false;
@@ -3735,7 +3766,7 @@ void parse_arg(int key, char *arg)
 	case 'd': // --device
 		{
 			int device_thr[MAX_GPUS] = { 0 };
-			int ngpus = cuda_num_devices();
+			int ngpus = 1;
 			char* pch = strtok(arg,",");
 			opt_n_threads = 0;
 			while (pch != NULL && opt_n_threads < MAX_GPUS) {
@@ -3748,7 +3779,7 @@ void parse_arg(int key, char *arg)
 						proper_exit(EXIT_CODE_CUDA_NODEVICE);
 					}
 				} else {
-					int device = cuda_finddevice(pch);
+					int device = 1;
 					if (device >= 0 && device < ngpus)
 						device_map[opt_n_threads++] = device;
 					else {
@@ -4023,7 +4054,7 @@ int main(int argc, char *argv[])
 		num_cpus = 1;
 
 	// number of gpus
-	active_gpus = cuda_num_devices();
+	active_gpus = 1;
 
 	for (i = 0; i < MAX_GPUS; i++) {
 		device_map[i] = i % active_gpus;
@@ -4039,8 +4070,6 @@ int main(int argc, char *argv[])
 		device_pstate[i] = -1;
 		device_led[i] = -1;
 	}
-
-	cuda_devicenames();
 
 	/* parse command line */
 	parse_cmdline(argc, argv);
@@ -4082,7 +4111,7 @@ int main(int argc, char *argv[])
 		allow_mininginfo = false;
 	}
 
-	if (opt_algo == ALGO_EQUIHASH) {
+	if (opt_algo == ALGO_EQUIHASH || opt_algo == ALGO_VERUS) {
 		opt_extranonce = false; // disable subscribe
 	}
 
@@ -4334,7 +4363,7 @@ int main(int argc, char *argv[])
 		thr->id = i;
 		thr->gpu.thr_id = i;
 		thr->gpu.gpu_id = (uint8_t) device_map[i];
-		thr->gpu.gpu_arch = (uint16_t) device_sm[device_map[i]];
+		//thr->gpu.gpu_arch = (uint16_t) device_sm[device_map[i]];
 		thr->q = tq_new();
 		if (!thr->q)
 			return EXIT_CODE_SW_INIT_ERROR;

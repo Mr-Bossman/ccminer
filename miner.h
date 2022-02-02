@@ -214,6 +214,13 @@ static inline void le32enc(void *pp, uint32_t x)
 }
 #endif
 
+#if defined(__FreeBSD__)
+#define HAVE_DECL_BE16DEC 1
+#define HAVE_DECL_LE16DEC 1
+#define HAVE_DECL_BE16ENC 1
+#define HAVE_DECL_LE16ENC 1
+#endif
+
 #if !HAVE_DECL_BE16DEC
 static inline uint16_t be16dec(const void *pp)
 {
@@ -285,6 +292,7 @@ extern int scanhash_cryptonight(int thr_id, struct work* work, uint32_t max_nonc
 extern int scanhash_decred(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done);
 extern int scanhash_deep(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done);
 extern int scanhash_equihash(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done);
+extern int scanhash_verus(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done);
 extern int scanhash_keccak256(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done);
 extern int scanhash_fresh(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done);
 extern int scanhash_fugue256(int thr_id, struct work* work, uint32_t max_nonce, unsigned long *hashes_done);
@@ -687,6 +695,7 @@ struct stratum_job {
 	uint32_t height;
 	uint32_t shares_count;
 	double diff;
+	int hash_ver;
 };
 
 struct stratum_ctx {
@@ -760,6 +769,7 @@ struct work {
 	struct tx txs[POK_MAX_TXS];
 	// zec solution
 	uint8_t extra[1388];
+	int hash_ver;
 };
 
 #define POK_BOOL_MASK 0x00008000
@@ -850,6 +860,14 @@ void equi_work_set_target(struct work* work, double diff);
 void equi_store_work_solution(struct work* work, uint32_t* hash, void* sol_data);
 int equi_verify_sol(void * const hdr, void * const sol);
 double equi_network_diff(struct work *work);
+
+bool verus_stratum_notify(struct stratum_ctx *sctx, json_t *params);
+bool verus_stratum_set_target(struct stratum_ctx *sctx, json_t *params);
+bool verus_stratum_submit(struct pool_infos *pool, struct work *work);
+bool verus_stratum_show_message(struct stratum_ctx *sctx, json_t *id, json_t *params);
+void verus_work_set_target(struct work* work, double diff);
+int verus_verify_sol(void * const hdr, void * const sol);
+double verus_network_diff(struct work *work);
 
 void hashlog_remember_submit(struct work* work, uint32_t nonce);
 void hashlog_remember_scan_range(struct work* work);
