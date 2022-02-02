@@ -180,15 +180,15 @@ else
 fi
 AC_SUBST(CUDA_LOCAL_PATH)
 
-CUDA_INCLUDES="-I$CUDA_LOCAL_PATH/include"
-CUDA_LDFLAGS="-L$CUDA_LOCAL_PATH/lib$SUFFIX"
-CUDA_LIBS="-lcudart -static-libstdc++"
+#CUDA_INCLUDES="-I$CUDA_LOCAL_PATH/include"
+#CUDA_LDFLAGS="-L$CUDA_LOCAL_PATH/lib$SUFFIX"
+#CUDA_LIBS="-lcudart -static-libstdc++"
 
-if test -n "$with_nvml" ; then
-  NVML_LIBPATH=$with_nvml
-  CUDA_LDFLAGS="$CUDA_LDFLAGS -ldl"
-fi
-AC_SUBST(NVML_LIBPATH)
+#if test -n "$with_nvml" ; then
+#  NVML_LIBPATH=$with_nvml
+#  CUDA_LDFLAGS="$CUDA_LDFLAGS -ldl"
+#fi
+#AC_SUBST(NVML_LIBPATH)
 
 AC_SUBST(CUDA_CFLAGS)
 AC_SUBST(CUDA_INCLUDES)

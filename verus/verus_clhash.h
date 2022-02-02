@@ -33,7 +33,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#ifndef NCPUID
 #ifdef _WIN32
 #define posix_memalign(p, a, s) (((*(p)) = _aligned_malloc((s), (a))), *(p) ?0 :errno)
 
@@ -114,7 +114,7 @@ inline void ForceCPUVerusOptimized(bool trueorfalse)
 {
     __cpuverusoptimized = trueorfalse;
 };
-
+#endif /* NCPUID */
 uint64_t verusclhashv2_1(void * random, const unsigned char buf[64], uint64_t keyMask, uint32_t *fixrand, uint32_t *fixrandex,
 	u128 *g_prand, u128 *g_prandex);
 uint64_t verusclhashv2_2(void * random, const unsigned char buf[64], uint64_t keyMask, uint32_t *fixrand, uint32_t *fixrandex,
@@ -122,14 +122,8 @@ uint64_t verusclhashv2_2(void * random, const unsigned char buf[64], uint64_t ke
 uint64_t verusclhash_port(void * random, const unsigned char buf[64], uint64_t keyMask, uint32_t *fixrand, uint32_t *fixrandex,
 	u128 *g_prand, u128 *g_prandex);
 
-void *alloc_aligned_buffer(uint64_t bufSize);
-
 #ifdef __cplusplus
 } // extern "C"
-#endif
-
-#ifdef __cplusplus
-
 #include <vector>
 #include <string>
 
