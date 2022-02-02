@@ -1,7 +1,7 @@
-AC_INIT([ccminer], [2.3.2], [], [ccminer], [http://github.com/tpruvot/ccminer])
+AC_INIT([ccminer],[2.3.2],[],[ccminer],[http://github.com/tpruvot/ccminer])
 
-AC_PREREQ([2.59c])
-AC_CANONICAL_SYSTEM
+AC_PREREQ([2.71])
+AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([ccminer.cpp])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_HEADERS([ccminer-config.h])
@@ -10,16 +10,16 @@ dnl Make sure anyone changing configure.ac/Makefile.am has a clue
 AM_MAINTAINER_MODE
 
 dnl Checks for programs
-AC_PROG_CC_C99
+AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 AM_PROG_CC_C_O
 AM_PROG_AS
 AC_PROG_RANLIB
 AC_PROG_CXX
 AC_OPENMP
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
 
-dnl Checks for header files
-AC_HEADER_STDC
 AC_CHECK_HEADERS([sys/endian.h sys/param.h syslog.h])
 # sys/sysctl.h requires sys/types.h on FreeBSD
 # sys/sysctl.h requires sys/param.h on OpenBSD
@@ -55,22 +55,23 @@ case $target in
   aarch64-*)
     have_arm64=true
     ;;
-esac
-
-PTHREAD_FLAGS="-pthread"
-WS2_LIBS=""
-
-case $target in
   *-*-mingw*)
     have_win32=true
     PTHREAD_FLAGS=""
     WS2_LIBS="-lws2_32"
     ;;
-  *86*-apple-darwin*)
+  *-apple-darwin*)
     have_osx=true
     PTHREAD_FLAGS=""
     ;;
+  arm-*)
+    have_arm=true
+    ;;
 esac
+
+PTHREAD_FLAGS="-pthread"
+WS2_LIBS=""
+
 
 AC_CHECK_LIB(jansson, json_loads, request_jansson=false, request_jansson=true)
 AC_CHECK_LIB([pthread], [pthread_create], PTHREAD_LIBS="-lpthread",
@@ -83,12 +84,35 @@ AC_CHECK_LIB([z],[gzopen], [], [])
 AC_CHECK_LIB([ssl],[SSL_free], [], [AC_MSG_ERROR([OpenSSL library required])])
 AC_CHECK_LIB([crypto],[EVP_DigestFinal_ex], [], [AC_MSG_ERROR([OpenSSL library required])])
 
+
+# ANDROID
+dnl Check for Android system
+AC_MSG_CHECKING([for an Android system])
+AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#ifndef __ANDROID__
+#error __ANDROID__ not defined
+#endif
+]],[[;]])], [have_android=true; AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
+
+AM_CONDITIONAL([HAVE_ANDROID], [test x$HAVE_ANDROID = xtrue])
 AM_CONDITIONAL([WANT_JANSSON], [test x$request_jansson = xtrue])
 AM_CONDITIONAL([HAVE_WINDOWS], [test x$have_win32 = xtrue])
 AM_CONDITIONAL([HAVE_OSX], [test x$have_osx = xtrue])
 AM_CONDITIONAL([ARCH_x86], [test x$have_x86 = xtrue])
 AM_CONDITIONAL([ARCH_x86_64], [test x$have_x86_64 = xtrue])
 AM_CONDITIONAL([ARCH_ARM64], [test x$have_arm64 = xtrue])
+AM_CONDITIONAL([ARCH_ARM], [test x$have_arm = xtrue])
+
+if test x$have_arm = xtrue
+then
+  ARCH_FLAGS="-march=armv7 -mfpu=neon -DARM"
+else
+if test x$have_arm64 = xtrue
+then
+  ARCH_FLAGS="-march=armv8-a+fp+simd+crypto -DARM"
+else
+  ARCH_FLAGS="-march=native -mtune=native"
+fi
+fi
 
 if test x$request_jansson = xtrue
 then
@@ -97,13 +121,11 @@ else
 	JANSSON_LIBS=-ljansson
 fi
 
-LIBCURL_CHECK_CONFIG(, 7.15.2, ,
-  [AC_MSG_ERROR([Missing required libcurl >= 7.15.2])])
-
 AC_SUBST(JANSSON_LIBS)
 AC_SUBST(PTHREAD_FLAGS)
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(WS2_LIBS)
+AC_SUBST(ARCH_FLAGS)
 
 AC_CONFIG_FILES([
 	Makefile
@@ -123,6 +145,9 @@ fi
 if test x$have_osx = xtrue
 then
   SUFFIX=""
+else
+LIBCURL_CHECK_CONFIG(, 7.15.2, ,
+  [AC_MSG_ERROR([Missing required libcurl >= 7.15.2])])
 fi
 
 dnl Setup CUDA paths
@@ -133,6 +158,15 @@ AC_ARG_WITH([nvml],
    [  --with-nvml=PATH    prefix where libnvml is installed [default=/usr/lib]])
 
 AM_CONDITIONAL([HAVE_NVML], [test -n "$with_nvml"])
+
+dnl Wants cuda
+AC_ARG_WITH([no-cuda],
+   [--with-no-cuda [Removes cuda]],[with_no_cuda=true])
+
+AM_CONDITIONAL([NO_CUDA], [test x$with_no_cuda = xtrue])
+
+if test x$with_no_cuda != xtrue
+then
 
 NVCC="nvcc"
 
@@ -161,6 +195,7 @@ AC_SUBST(CUDA_INCLUDES)
 AC_SUBST(CUDA_LIBS)
 AC_SUBST(CUDA_LDFLAGS)
 AC_SUBST(NVCC)
+fi
 
 AC_SUBST(OPENMP_CFLAGS) 
 
