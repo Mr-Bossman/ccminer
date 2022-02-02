@@ -553,7 +553,11 @@ static void affine_to_cpu_mask(int id, unsigned long mask) {
 		sched_setaffinity(0, sizeof(&set), &set);
 	} else {
 		// thread only
+#if !(defined(__ANDROID__) || (__ANDROID_API__ > 23))
 		pthread_setaffinity_np(thr_info[id].pth, sizeof(&set), &set);
+#else
+		sched_setaffinity(0, sizeof(&set), &set);
+#endif
 	}
 }
 #elif defined(__FreeBSD__) /* FreeBSD specific policy and affinity management */
