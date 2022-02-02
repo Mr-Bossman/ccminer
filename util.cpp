@@ -1177,7 +1177,7 @@ static bool stratum_parse_extranonce(struct stratum_ctx *sctx, json_t *params, i
 	if (!xn2_size) {
 		char algo[64] = { 0 };
 		get_currentalgo(algo, sizeof(algo));
-		if (strcmp(algo, "equihash") == 0) {
+		if (strcmp(algo, "equihash") == 0 || strcmp(algo, "verus") == 0) {
 			int xn1_size = (int)strlen(xnonce1) / 2;
 			xn2_size = 32 - xn1_size;
 			if (xn1_size < 4 || xn1_size > 12) {
@@ -1455,8 +1455,10 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 	bool has_claim = !strcmp(algo, "lbry");
 	bool has_roots = !strcmp(algo, "phi2") && json_array_size(params) == 10;
 
-	if (sctx->is_equihash) {
+	if (sctx->is_equihash && strcmp(algo, "verus")) {
 		return equi_stratum_notify(sctx, params);
+	} else if(sctx->is_equihash && !strcmp(algo, "verus")){
+		return verus_stratum_notify(sctx, params);
 	}
 
 	job_id = json_string_value(json_array_get(params, p++));
@@ -1793,8 +1795,12 @@ static bool stratum_show_message(struct stratum_ctx *sctx, json_t *id, json_t *p
 	char *s;
 	json_t *val;
 	bool ret;
+	char algo[64] = { 0 };
+	get_currentalgo(algo, sizeof(algo));
 
-	if (sctx->is_equihash)
+	if (sctx->is_equihash && strcmp(algo, "verus"))
+		return verus_stratum_show_message(sctx, id, params);
+	else
 		return equi_stratum_show_message(sctx, id, params);
 
 	val = json_array_get(params, 0);
@@ -1872,7 +1878,12 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 	}
 	if (!strcasecmp(method, "mining.set_target")) {
 		sctx->is_equihash = true;
-		ret = equi_stratum_set_target(sctx, params);
+		char algo[64] = { 0 };
+		get_currentalgo(algo, sizeof(algo));
+		if (strcmp(algo, "verus") == 0)
+			ret = verus_stratum_set_target(sctx, params);
+		else
+			ret = equi_stratum_set_target(sctx, params);
 		goto out;
 	}
 	if (!strcasecmp(method, "mining.set_extranonce")) {
