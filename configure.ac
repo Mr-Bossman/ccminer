@@ -55,6 +55,12 @@ case $target in
   aarch64-*)
     have_arm64=true
     ;;
+  arm*)
+    have_arm=true
+    ;;
+esac
+
+case $target in
   *-*-mingw*)
     have_win32=true
     PTHREAD_FLAGS=""
@@ -63,9 +69,6 @@ case $target in
   *-apple-darwin*)
     have_osx=true
     PTHREAD_FLAGS=""
-    ;;
-  arm-*)
-    have_arm=true
     ;;
 esac
 
@@ -93,7 +96,7 @@ AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#ifndef __ANDROID__
 #endif
 ]],[[;]])], [have_android=true; AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
 
-AM_CONDITIONAL([HAVE_ANDROID], [test x$HAVE_ANDROID = xtrue])
+AM_CONDITIONAL([HAVE_ANDROID], [test x$have_android = xtrue])
 AM_CONDITIONAL([WANT_JANSSON], [test x$request_jansson = xtrue])
 AM_CONDITIONAL([HAVE_WINDOWS], [test x$have_win32 = xtrue])
 AM_CONDITIONAL([HAVE_OSX], [test x$have_osx = xtrue])

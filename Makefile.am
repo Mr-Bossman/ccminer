@@ -45,8 +45,6 @@ endif
 
 if HAVE_OSX
 ccminer_CXXFLAGS += -std=c++11
-ccminer_CPPFLAGS += -I/usr/local/llvm/lib/clang/4.0.0/include
-ccminer_LDFLAGS += -L/usr/local/llvm/lib
 ccminer_LDADD += -lcurl
 else
 ccminer_CPPFLAGS += @LIBCURL_CPPFLAGS@
