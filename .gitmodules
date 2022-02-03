@@ -1,3 +1,15 @@
 [submodule "verus/sse2neon"]
 	path = verus/sse2neon
 	url = https://github.com/DLTcollab/sse2neon.git
+[submodule "curl"]
+	path = curl
+	url = https://github.com/curl/curl.git
+[submodule "openssl"]
+	path = openssl
+	url = https://github.com/openssl/openssl.git
+[submodule "jansson"]
+	path = jansson
+	url = https://github.com/akheron/jansson.git
+[submodule "zlib"]
+	path = zlib
+	url = https://github.com/madler/zlib.git
