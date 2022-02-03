@@ -124,10 +124,10 @@ static void gpustatus(int thr_id)
 		char buf[512]; *buf = '\0';
 		char* card;
 
-		cuda_gpu_info(cgpu);
+		//cuda_gpu_info(cgpu);
 		cgpu->gpu_plimit = device_plimit[cgpu->gpu_id];
 
-#ifdef USE_WRAPNVML
+#if 0
 		cgpu->has_monitoring = true;
 		cgpu->gpu_bus = gpu_busid(cgpu);
 		cgpu->gpu_temp = gpu_temp(cgpu);
@@ -272,10 +272,10 @@ static void gpuhwinfos(int gpu_id)
 	if (cgpu == NULL)
 		return;
 
-	cuda_gpu_info(cgpu);
+	//cuda_gpu_info(cgpu);
 	cgpu->gpu_plimit = device_plimit[cgpu->gpu_id];
 
-#ifdef USE_WRAPNVML
+#if 0
 	cgpu->has_monitoring = true;
 	cgpu->gpu_bus = gpu_busid(cgpu);
 	cgpu->gpu_temp = gpu_temp(cgpu);
@@ -355,9 +355,9 @@ static void syshwinfos()
 static char *gethwinfos(char *params)
 {
 	*buffer = '\0';
-	for (int i = 0; i < cuda_num_devices(); i++)
-		gpuhwinfos(i);
-	syshwinfos();
+	//for (int i = 0; i < cuda_num_devices(); i++)
+	//	gpuhwinfos(i);
+	//syshwinfos();
 	return buffer;
 }
 
@@ -1344,10 +1344,10 @@ void api_set_throughput(int thr_id, uint32_t throughput)
 {
 	if (thr_id < MAX_GPUS && thr_info) {
 		struct cgpu_info *cgpu = &thr_info[thr_id].gpu;
-		cgpu->intensity = throughput2intensity(throughput);
+	//	cgpu->intensity = throughput2intensity(throughput);
 		if (cgpu->throughput != throughput) cgpu->throughput = throughput;
 	}
 	// to display in bench results
-	if (opt_benchmark)
-		bench_set_throughput(thr_id, throughput);
+	//if (opt_benchmark)
+		//bench_set_throughput(thr_id, throughput);
 }
