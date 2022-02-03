@@ -1,10 +1,12 @@
 AC_INIT([ccminer],[2.3.2],[],[ccminer],[http://github.com/tpruvot/ccminer])
 
+AC_CONFIG_AUX_DIR([.])
 AC_PREREQ([2.71])
 AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([ccminer.cpp])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_HEADERS([ccminer-config.h])
+AC_CONFIG_MACRO_DIRS([m4])
 
 dnl Make sure anyone changing configure.ac/Makefile.am has a clue
 AM_MAINTAINER_MODE
@@ -14,7 +16,6 @@ AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 AM_PROG_CC_C_O
 AM_PROG_AS
-AC_PROG_RANLIB
 AC_PROG_CXX
 AC_OPENMP
 AC_CHECK_INCLUDES_DEFAULT
@@ -55,6 +56,12 @@ case $target in
   aarch64-*)
     have_arm64=true
     ;;
+  arm*)
+    have_arm=true
+    ;;
+esac
+
+case $target in
   *-*-mingw*)
     have_win32=true
     PTHREAD_FLAGS=""
@@ -64,25 +71,16 @@ case $target in
     have_osx=true
     PTHREAD_FLAGS=""
     ;;
-  arm-*)
-    have_arm=true
-    ;;
 esac
 
 PTHREAD_FLAGS="-pthread"
 WS2_LIBS=""
 
-
-AC_CHECK_LIB(jansson, json_loads, request_jansson=false, request_jansson=true)
 AC_CHECK_LIB([pthread], [pthread_create], PTHREAD_LIBS="-lpthread",
   AC_CHECK_LIB([pthreadGC2], [pthread_create], PTHREAD_LIBS="-lpthreadGC2",
     AC_CHECK_LIB([pthreadGC1], [pthread_create], PTHREAD_LIBS="-lpthreadGC1",
       AC_CHECK_LIB([pthreadGC], [pthread_create], PTHREAD_LIBS="-lpthreadGC"
 ))))
-
-AC_CHECK_LIB([z],[gzopen], [], [])
-AC_CHECK_LIB([ssl],[SSL_free], [], [AC_MSG_ERROR([OpenSSL library required])])
-AC_CHECK_LIB([crypto],[EVP_DigestFinal_ex], [], [AC_MSG_ERROR([OpenSSL library required])])
 
 
 # ANDROID
@@ -93,8 +91,7 @@ AC_PREPROC_IFELSE([AC_LANG_PROGRAM([[#ifndef __ANDROID__
 #endif
 ]],[[;]])], [have_android=true; AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
 
-AM_CONDITIONAL([HAVE_ANDROID], [test x$HAVE_ANDROID = xtrue])
-AM_CONDITIONAL([WANT_JANSSON], [test x$request_jansson = xtrue])
+AM_CONDITIONAL([HAVE_ANDROID], [test x$have_android = xtrue])
 AM_CONDITIONAL([HAVE_WINDOWS], [test x$have_win32 = xtrue])
 AM_CONDITIONAL([HAVE_OSX], [test x$have_osx = xtrue])
 AM_CONDITIONAL([ARCH_x86], [test x$have_x86 = xtrue])
@@ -114,24 +111,12 @@ else
 fi
 fi
 
-if test x$request_jansson = xtrue
-then
-	JANSSON_LIBS="compat/jansson/libjansson.a"
-else
-	JANSSON_LIBS=-ljansson
-fi
-
-AC_SUBST(JANSSON_LIBS)
 AC_SUBST(PTHREAD_FLAGS)
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(WS2_LIBS)
 AC_SUBST(ARCH_FLAGS)
 
-AC_CONFIG_FILES([
-	Makefile
-	compat/Makefile
-	compat/jansson/Makefile
-	])
+AC_CONFIG_FILES([Makefile])
 
 dnl find out what version we are running
 ARCH=`uname -m`
@@ -145,9 +130,6 @@ fi
 if test x$have_osx = xtrue
 then
   SUFFIX=""
-else
-LIBCURL_CHECK_CONFIG(, 7.15.2, ,
-  [AC_MSG_ERROR([Missing required libcurl >= 7.15.2])])
 fi
 
 dnl Setup CUDA paths

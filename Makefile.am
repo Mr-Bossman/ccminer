@@ -1,17 +1,11 @@
 # allow to use Host cuda functions in C/C++
-DEF_INCLUDES = @CUDA_INCLUDES@
-
-if WANT_JANSSON
-JANSSON_INCLUDES= -I$(top_srcdir)/compat/jansson
-else
-JANSSON_INCLUDES=
-endif
+DEF_INCLUDES = @CUDA_INCLUDES@  -Iopenssl/include -Icurl/include -Ijansson/src -Izlib
 
 EXTRA_DIST	= autogen.sh README.md README.txt LICENSE.txt \
 		  ccminer.sln ccminer.vcxproj ccminer.vcxproj.filters \
 		  compat/gettimeofday.c compat/getopt/getopt_long.c
 
-SUBDIRS = compat
+SUBDIRS = curl jansson openssl zlib
 
 bin_PROGRAMS = ccminer
 
@@ -34,24 +28,15 @@ ccminer_SOURCES += compat/winansi.c
 endif
 
 ccminer_LDFLAGS  = $(PTHREAD_FLAGS) @CUDA_LDFLAGS@
-ccminer_LDADD    = @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ @CUDA_LIBS@ @OPENMP_CFLAGS@ @LIBS@ $(nvml_libs)
-ccminer_CPPFLAGS = @OPENMP_CFLAGS@  @ARCH_FLAGS@ $(CPPFLAGS) $(PTHREAD_FLAGS) -fno-strict-aliasing $(JANSSON_INCLUDES) $(DEF_INCLUDES) $(nvml_defs)
-ccminer_CXXFLAGS = -std=c++11  @ARCH_FLAGS@
-ccminer_CFLAGS = @ARCH_FLAGS@
+ccminer_LDADD    = ./curl/lib/.libs/libcurl.a ./jansson/src/.libs/libjansson.a ./zlib/libz.a ./openssl/libssl.a ./openssl/libcrypto.a -ldl @PTHREAD_LIBS@ @WS2_LIBS@ @CUDA_LIBS@ @OPENMP_CFLAGS@ @LIBS@ $(nvml_libs)
+ccminer_CPPFLAGS =  @OPENMP_CFLAGS@  @ARCH_FLAGS@ $(CPPFLAGS) $(PTHREAD_FLAGS) -fno-strict-aliasing $(DEF_INCLUDES) $(nvml_defs)
+ccminer_CXXFLAGS = -std=c++11  @ARCH_FLAGS@  $(DEF_INCLUDES)
+ccminer_CFLAGS = @ARCH_FLAGS@ $(DEF_INCLUDES)
 
 if ARCH_ARM64
 ccminer_CPPFLAGS += -DARM64
 endif
 
-if HAVE_OSX
-ccminer_CXXFLAGS += -std=c++11
-ccminer_CPPFLAGS += -I/usr/local/llvm/lib/clang/4.0.0/include
-ccminer_LDFLAGS += -L/usr/local/llvm/lib
-ccminer_LDADD += -lcurl
-else
-ccminer_CPPFLAGS += @LIBCURL_CPPFLAGS@
-ccminer_LDADD += @LIBCURL@
-endif
 
 if !NO_CUDA
 if ARCH_ARM64
