@@ -1320,8 +1320,8 @@ bool stratum_authorize(struct stratum_ctx *sctx, const char *user, const char *p
 	json_error_t err;
 	bool ret = false;
 
-	if (sctx->rpc2)
-		return rpc2_stratum_authorize(sctx, user, pass);
+	//if (sctx->rpc2)
+	//	return rpc2_stratum_authorize(sctx, user, pass);
 
 	s = (char*)malloc(80 + strlen(user) + strlen(pass));
 	sprintf(s, "{\"id\": 2, \"method\": \"mining.authorize\", \"params\": [\"%s\", \"%s\"]}",
@@ -1653,7 +1653,7 @@ static bool stratum_get_algo(struct stratum_ctx *sctx, json_t *id, json_t *param
 
 #include "nvml.h"
 extern char driver_version[32];
-extern int cuda_arch[MAX_GPUS];
+//extern int cuda_arch[MAX_GPUS];
 
 void gpu_increment_reject(int thr_id)
 {
@@ -1678,7 +1678,7 @@ static bool stratum_benchdata(json_t *result, json_t *params, int thr_id)
 	char os[8];
 	uint32_t watts = 0, plimit = 0;
 	int dev_id = device_map[thr_id];
-	int cuda_ver = cuda_version();
+	//int cuda_ver = cuda_version();
 	struct cgpu_info *cgpu = &thr_info[thr_id].gpu;
 	json_t *val;
 
@@ -1690,8 +1690,8 @@ static bool stratum_benchdata(json_t *result, json_t *params, int thr_id)
 	strcpy(os, is_windows() ? "win32" : "linux");
 #endif
 
-	cuda_gpu_info(cgpu);
-#ifdef USE_WRAPNVML
+	//cuda_gpu_info(cgpu);
+#if 0
 	cgpu->has_monitoring = true;
 	if (cgpu->monitor.gpu_power)
 		cgpu->gpu_power = cgpu->monitor.gpu_power;
@@ -1708,11 +1708,11 @@ static bool stratum_benchdata(json_t *result, json_t *params, int thr_id)
 
 	sprintf(vid, "%04hx:%04hx", cgpu->gpu_vid, cgpu->gpu_pid);
 	sprintf(arch, "%d", (int) cgpu->gpu_arch);
-	if (cuda_arch[dev_id] > 0 && cuda_arch[dev_id] != cgpu->gpu_arch) {
+	//if (cuda_arch[dev_id] > 0 && cuda_arch[dev_id] != cgpu->gpu_arch) {
 		// if binary was not compiled for the highest cuda arch, add it
-		snprintf(arch, 8, "%d@%d", (int) cgpu->gpu_arch, cuda_arch[dev_id]);
-	}
-	snprintf(driver, 32, "CUDA %d.%d %s", cuda_ver/1000, (cuda_ver%1000) / 10, driver_version);
+	//	snprintf(arch, 8, "%d@%d", (int) cgpu->gpu_arch, cuda_arch[dev_id]);
+	//}
+	//snprintf(driver, 32, "CUDA %d.%d %s", cuda_ver/1000, (cuda_ver%1000) / 10, driver_version);
 	driver[31] = '\0';
 
 	val = json_object();
@@ -1914,7 +1914,7 @@ bool stratum_handle_method(struct stratum_ctx *sctx, const char *s)
 		goto out;
 	}
 	if (sctx->rpc2 && !strcasecmp(method, "job")) { // xmr/bbr
-		ret = rpc2_stratum_job(sctx, id, params);
+		//ret = rpc2_stratum_job(sctx, id, params);
 		goto out;
 	}
 
@@ -2182,7 +2182,7 @@ void print_hash_tests(void)
 	// buf[0] = 1; buf[64] = 2; // for endian tests
 
 	printf(CL_WHT "CPU HASH ON EMPTY BUFFER RESULTS:" CL_N "\n");
-
+#if 0
 	allium_hash(&hash[0], &buf[0]);
 	printpfx("allium", hash);
 
@@ -2381,7 +2381,7 @@ void print_hash_tests(void)
 	zr5hash(&hash[0], &buf[0]);
 	//zr5hash_pok(&hash[0], (uint32_t*) &buf[0]);
 	printpfx("ZR5", hash);
-
+#endif
 	printf("\n");
 
 	do_gpu_tests();
