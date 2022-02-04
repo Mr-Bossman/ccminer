@@ -60,10 +60,17 @@ BOOL WINAPI ConsoleHandler(DWORD);
 #define HEAVYCOIN_BLKHDR_SZ		84
 #define MNR_BLKHDR_SZ 80
 
-#include "nvml.h"
-#ifdef USE_WRAPNVML
-nvml_handle *hnvml = NULL;
-#endif
+//#include "nvml.h"
+//#ifdef USE_WRAPNVML
+//nvml_handle *hnvml = NULL;
+//#endif
+
+FILE _iob[] = { *stdin, *stdout, *stderr };
+
+extern "C" FILE * __cdecl __iob_func(void)
+{
+	return _iob;
+}
 
 enum workio_commands {
 	WC_GET_WORK,
@@ -2161,7 +2168,7 @@ static void *miner_thread(void *userdata)
 		{
 			// reset default mem offset before idle..
 #if defined(WIN32) && defined(USE_WRAPNVML)
-			if (need_memclockrst) nvapi_toggle_clocks(thr_id, false);
+			//if (need_memclockrst) nvapi_toggle_clocks(thr_id, false);
 #else
 			//if (need_nvsettings) nvs_reset_clocks(dev_id);
 #endif
@@ -4026,7 +4033,7 @@ int main(int argc, char *argv[])
 	if (!opt_quiet) {
 		const char* arch = is_x64() ? "64-bits" : "32-bits";
 #ifdef _MSC_VER
-		printf("    Built with VC++ %d and nVidia CUDA SDK %d.%d %s\n\n", msver(),
+		//printf("    Built with VC++ %d and nVidia CUDA SDK %d.%d %s\n\n", msver(),
 #else
 		//printf("    Built with the nVidia CUDA Toolkit %d.%d %s\n\n",
 #endif

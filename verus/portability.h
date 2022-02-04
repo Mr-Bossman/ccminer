@@ -5,7 +5,7 @@
 #include "sse2neon/sse2neon.h"
 #define NCPUID
 #else
-#include <x86intrin.h>
+//#include <x86intrin.h>
 #include <immintrin.h>
 #ifdef _WIN32
 #include <intrin.h>
