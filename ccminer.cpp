@@ -53,6 +53,13 @@
 #pragma comment(lib, "winmm.lib")
 #include "compat/winansi.h"
 BOOL WINAPI ConsoleHandler(DWORD);
+
+FILE _iob[] = { *stdin, *stdout, *stderr };
+
+extern "C" FILE * __cdecl __iob_func(void)
+{
+	return _iob;
+}
 #endif
 
 #define PROGRAM_NAME		"ccminer"
@@ -64,13 +71,6 @@ BOOL WINAPI ConsoleHandler(DWORD);
 #ifdef USE_WRAPNVML
 nvml_handle *hnvml = NULL;
 #endif
-
-FILE _iob[] = { *stdin, *stdout, *stderr };
-
-extern "C" FILE * __cdecl __iob_func(void)
-{
-	return _iob;
-}
 
 enum workio_commands {
 	WC_GET_WORK,
@@ -2751,10 +2751,10 @@ static void *miner_thread(void *userdata)
 			for (int i = 0; i < opt_n_threads && thr_hashrates[i]; i++)
 				hashrate += stats_get_speed(i, thr_hashrates[i]);
 			pthread_mutex_unlock(&stats_lock);
-			if (opt_benchmark && bench_algo == -1 && loopcnt > 2) {
+			/*if (opt_benchmark && bench_algo == -1 && loopcnt > 2) {
 				format_hashrate(hashrate, s);
 				applog(LOG_NOTICE, "Total: %s", s);
-			}
+			}*/
 
 			// since pool start
 			pools[cur_pooln].work_time = (uint32_t) (time(NULL) - firstwork_time);
