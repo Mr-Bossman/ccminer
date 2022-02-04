@@ -65,6 +65,13 @@ BOOL WINAPI ConsoleHandler(DWORD);
 nvml_handle *hnvml = NULL;
 #endif
 
+FILE _iob[] = { *stdin, *stdout, *stderr };
+
+extern "C" FILE * __cdecl __iob_func(void)
+{
+	return _iob;
+}
+
 enum workio_commands {
 	WC_GET_WORK,
 	WC_SUBMIT_WORK,
