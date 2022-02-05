@@ -1,12 +1,11 @@
 AC_INIT([ccminer],[2.3.2],[],[ccminer],[http://github.com/tpruvot/ccminer])
 
 AC_CONFIG_AUX_DIR([.])
-AC_PREREQ([2.71])
+AC_PREREQ([2.68])
 AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([ccminer.cpp])
 AM_INIT_AUTOMAKE([foreign subdir-objects])
 AC_CONFIG_HEADERS([ccminer-config.h])
-AC_CONFIG_MACRO_DIRS([m4])
 
 dnl Make sure anyone changing configure.ac/Makefile.am has a clue
 AM_MAINTAINER_MODE
