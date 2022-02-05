@@ -20,28 +20,15 @@
 #ifndef INCLUDE_VERUS_CLHASH_H
 #define INCLUDE_VERUS_CLHASH_H
 
-
-
-
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <assert.h>
-#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef _WIN32
-#define posix_memalign(p, a, s) (((*(p)) = _aligned_malloc((s), (a))), *(p) ?0 :errno)
-
-	typedef unsigned char u_char;
-
-typedef unsigned char u_char;
-
-#endif
 enum {
     // Verus Key size must include the equivalent size of a Haraka key
     // after the first part.
@@ -51,85 +38,11 @@ enum {
 	VERUSHHASH_SOLUTION_VERSION = 1
 };
 
-
-
-extern int __cpuverusoptimized;
-
-static inline bool IsCPUVerusOptimized()
-{
-
-#ifndef _WIN32
-	unsigned int eax, ebx, ecx, edx;
-
-	if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx))
-	{
-		return false;
-	}
-	return ((ecx & (bit_AVX | bit_AES)) == (bit_AVX | bit_AES));
-#else
-
-	// https://github.com/gcc-mirror/gcc/blob/master/gcc/config/i386/cpuid.h
-#define bit_AVX		(1 << 28)
-#define bit_AES		(1 << 25)
-	// https://insufficientlycomplicated.wordpress.com/2011/11/07/detecting-intel-advanced-vector-extensions-avx-in-visual-studio/
-	// bool cpuAVXSuport = cpuInfo[2] & (1 << 28) || false;
-
-	int cpuInfo[4];
-	__cpuid(cpuInfo, 1);
-	return ((cpuInfo[2] & (bit_AVX | bit_AES)) == (bit_AVX | bit_AES));
-
-#endif
-
-
-    if (__cpuverusoptimized & 0x80)
-    {
-#ifdef _WIN32
-        #define bit_AVX		(1 << 28)
-        #define bit_AES		(1 << 25)
-        #define bit_PCLMUL  (1 << 1)
-        // https://insufficientlycomplicated.wordpress.com/2011/11/07/detecting-intel-advanced-vector-extensions-avx-in-visual-studio/
-        // bool cpuAVXSuport = cpuInfo[2] & (1 << 28) || false;
-
-        int cpuInfo[4];
-		__cpuid(cpuInfo, 1);
-        __cpuverusoptimized = ((cpuInfo[2] & (bit_AVX | bit_AES | bit_PCLMUL)) == (bit_AVX | bit_AES | bit_PCLMUL));
-#else
-        unsigned int eax,ebx,ecx,edx;
-
-        if (!__get_cpuid(1,&eax,&ebx,&ecx,&edx))
-        {
-            __cpuverusoptimized = false;
-        }
-        else
-        {
-            __cpuverusoptimized = ((ecx & (bit_AVX | bit_AES | bit_PCLMUL)) == (bit_AVX | bit_AES | bit_PCLMUL));
-        }
-#endif //WIN32
-    }
-    return __cpuverusoptimized;
-
-};
-
-inline void ForceCPUVerusOptimized(bool trueorfalse)
-{
-    __cpuverusoptimized = trueorfalse;
-};
-
-uint64_t verusclhashv2_1(void * random, const unsigned char buf[64], uint64_t keyMask, uint32_t *fixrand, uint32_t *fixrandex,
-	u128 *g_prand, u128 *g_prandex);
 uint64_t verusclhashv2_2(void * random, const unsigned char buf[64], uint64_t keyMask, uint32_t *fixrand, uint32_t *fixrandex,
 	u128 *g_prand, u128 *g_prandex);
-uint64_t verusclhash_port(void * random, const unsigned char buf[64], uint64_t keyMask, uint32_t *fixrand, uint32_t *fixrandex,
-	u128 *g_prand, u128 *g_prandex);
-
-void *alloc_aligned_buffer(uint64_t bufSize);
 
 #ifdef __cplusplus
 } // extern "C"
-#endif
-
-#ifdef __cplusplus
-
 #include <vector>
 #include <string>
 
