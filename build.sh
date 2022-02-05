@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 
 # Simple script to create the Makefile and build
+if command -v pkg &> /dev/null
+then
+	pkg update -y
+	pkg install -y git nano automake build-essential clang binutils
+fi
+if command -v apt &> /dev/null
+then
+	apt update -y
+	apt install -y git nano automake build-essential clang binutils
+fi
+if [[ "$(uname -s)" == *"Darwin"* ]]; then
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+xcode-select --install
+brew install automake binutils gcc llvm
+fi
+
+git config --global pull.rebase true
+git pull
+
 git submodule update --init --recursive
 
 make distclean || echo clean
