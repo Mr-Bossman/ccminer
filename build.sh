@@ -30,6 +30,7 @@ git submodule update --init --recursive
 
 aclocal && autoheader && automake --add-missing --copy && autoconf
 
+echo cleaning build
 make distclean &>/dev/null && true
 
 extracflags="-O3 -ffast-math -Ofast -funroll-loops -finline-functions -falign-functions=16 -falign-jumps=16 -falign-labels=16 -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize -fvariable-expansion-in-unroller -fomit-frame-pointer -fpic -pthread -flto"

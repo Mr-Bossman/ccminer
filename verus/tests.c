@@ -20,6 +20,11 @@ __m128i lazyLengthHash(uint64_t keylength, uint64_t length) {
 }
 
 void* create(void* arg){
+	int policy;
+	struct sched_param param;
+	pthread_getschedparam(pthread_self(), &policy, &param);
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam(pthread_self(), policy, &param);
 	int i = *(int*)arg;
 	struct work work;
 	memset(&work, 0, sizeof(work));
@@ -39,29 +44,24 @@ void single(){
 }
 int main()
 {
-	single();
-	size_t count = 1;
+	size_t count = 16;
 	work_restart = (struct work_restart*) malloc(sizeof(struct work_restart) * count);
 	done = malloc(sizeof(unsigned long) * count);
 	id = malloc(sizeof(size_t) * count);
 	tid = malloc(sizeof(pthread_t) * count);
 	struct timeval tv_end, tv_start;
-	gettimeofday(&tv_start, NULL);
 	for (size_t i = 0; i < count; i++){
 		id[i] = i;
         	pthread_create(&tid[i], NULL, create, (void *)&id[i]);
 	}
 	int* ptr;
-	for (size_t i = 0; i < 20; i++){
+	for (size_t i = 1; i <= 60; i++){
 		sleep(1);
-		gettimeofday(&tv_end, NULL);
 		unsigned long tally = 0;
 		for (size_t i = 0; i < count; i++)
 			tally += done[i];
-		uint64_t time_ms = ((tv_end.tv_sec * 1000) + tv_end.tv_usec/1000) \
-		 - ((tv_start.tv_sec * 1000) + tv_start.tv_usec/1000);
-		double hashpsec = (double)tally/((double)time_ms/1000);
-		printf("rounds: %lu in %llums\n%lfMH/s\n%lfMH/s per thread\n",tally,time_ms,hashpsec/1000000,hashpsec/	(1000000*count));
+		double hashpsec = (double)tally/(1000000.0*i);
+		printf("rounds: %lu in %uS\n%lfMH/s\t\n%lfMH/s per thread\t\n\e[3A\r",tally,i,hashpsec,hashpsec/count);
 	}
 	for (size_t i = 0; i < count; i++)
 		work_restart[i].restart = 1;
