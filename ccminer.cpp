@@ -9,6 +9,8 @@
  * any later version.  See COPYING for more details.
  */
 
+#include <thread>
+
 #include <ccminer-config.h>
 
 #include <stdio.h>
@@ -1924,8 +1926,8 @@ static void *miner_thread(void *userdata)
 		if (opt_affinity == -1L && opt_n_threads > 1) {
 			if (opt_debug)
 				applog(LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)", thr_id,
-						thr_id % num_cpus, (1UL << (thr_id % num_cpus)));
-			affine_to_cpu_mask(thr_id, 1 << (thr_id % num_cpus));
+						thr_id, (1UL << (thr_id)));
+			affine_to_cpu_mask(thr_id, 1 << (thr_id));
 		} else if (opt_affinity != -1L) {
 			if (opt_debug)
 				applog(LOG_DEBUG, "Binding thread %d to cpu mask %lx", thr_id,
@@ -3126,7 +3128,7 @@ wait_stratum_url:
 			}
 			pthread_mutex_unlock(&g_work_lock);
 		}
-		
+
 		// check we are on the right pool
 		if (switchn != pool_switch_count) goto pool_switched;
 
@@ -4051,6 +4053,10 @@ int main(int argc, char *argv[])
 	pthread_mutex_init(&g_work_lock, NULL);
 
 	// number of cpus for thread affinity
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201103L) || __cplusplus >= 201103L)
+	num_cpus = std::thread::hardware_concurrency();
+#else
+#warning num_cpus may be wrong
 #if defined(WIN32)
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
@@ -4063,6 +4069,7 @@ int main(int argc, char *argv[])
 	sysctl(req, 2, &num_cpus, &len, NULL, 0);
 #else
 	num_cpus = 1;
+#endif
 #endif
 	if (num_cpus < 1)
 		num_cpus = 1;
