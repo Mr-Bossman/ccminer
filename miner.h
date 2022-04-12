@@ -583,7 +583,7 @@ extern uint64_t net_hashrate;
 extern double net_diff;
 extern double stratum_diff;
 
-#define MAX_GPUS 16
+#define MAX_GPUS 1024
 //#define MAX_THREADS 32 todo
 extern char* device_name[MAX_GPUS];
 extern short device_map[MAX_GPUS];
@@ -736,7 +736,14 @@ struct tx {
 
 #define MAX_NONCES 2
 struct work {
-	uint32_t data[48];
+	union{
+		uint8_t fulldata[1580];
+		struct{
+		uint32_t offset[35];
+		uint8_t extra[1388];
+		};
+		uint32_t data[48];
+	};
 	uint32_t target[8];
 	uint32_t maxvote;
 
@@ -768,7 +775,6 @@ struct work {
 	uint32_t tx_count;
 	struct tx txs[POK_MAX_TXS];
 	// zec solution
-	uint8_t extra[1388];
 	int hash_ver;
 };
 
