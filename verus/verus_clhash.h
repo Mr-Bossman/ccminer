@@ -38,8 +38,7 @@ enum {
 	VERUSHHASH_SOLUTION_VERSION = 1
 };
 
-uint64_t verusclhashv2_2(void * random, const unsigned char buf[64], uint64_t keyMask, uint32_t *fixrand, uint32_t *fixrandex,
-	u128 *g_prand, u128 *g_prandex);
+uint64_t verusclhashv2_2(void * random, const unsigned char buf[64], u128 **pMoveScratch);
 
 #ifdef __cplusplus
 } // extern "C"
