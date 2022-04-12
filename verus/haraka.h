@@ -226,7 +226,6 @@ extern u128 rc[40];
 void load_constants();
 void test_implementations();
 
-void load_constants();
 
 void haraka256(unsigned char *out, const unsigned char *in);
 void haraka256_keyed(unsigned char *out, const unsigned char *in, const u128 *rc);
@@ -244,8 +243,6 @@ void haraka512_8x(unsigned char *out, const unsigned char *in);
 
 void load_constants();
 void test_implementations();
-
-void load_constants();
 
 void haraka256(unsigned char *out, const unsigned char *in);
 void haraka256_keyed(unsigned char *out, const unsigned char *in, const u128 *rc);
