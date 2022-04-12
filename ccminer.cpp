@@ -9,6 +9,8 @@
  * any later version.  See COPYING for more details.
  */
 
+#include <thread>
+
 #include <ccminer-config.h>
 
 #include <stdio.h>
@@ -28,6 +30,7 @@
 #ifdef WIN32
 #include <windows.h>
 #include <stdint.h>
+
 #else
 #include <errno.h>
 #include <sys/resource.h>
@@ -53,6 +56,13 @@
 #pragma comment(lib, "winmm.lib")
 #include "compat/winansi.h"
 BOOL WINAPI ConsoleHandler(DWORD);
+
+FILE _iob[] = { *stdin, *stdout, *stderr };
+
+extern "C" FILE * __cdecl __iob_func(void)
+{
+	return _iob;
+}
 #endif
 
 #define PROGRAM_NAME		"ccminer"
@@ -119,7 +129,6 @@ static const bool opt_time = true;
 volatile enum sha_algos opt_algo = ALGO_AUTO;
 int opt_n_threads = 0;
 int gpu_threads = 1;
-int64_t opt_affinity = -1L;
 int opt_priority = 0;
 static double opt_difficulty = 1.;
 bool opt_extranonce = true;
@@ -348,7 +357,6 @@ Options:\n\
       --no-color        disable colored output\n\
   -D, --debug           enable debug output\n\
   -P, --protocol-dump   verbose dump of protocol-level activities\n\
-      --cpu-affinity    set process affinity to cpu core(s), mask 0x3 for cores 0 and 1\n\
       --cpu-priority    set process priority (default: 3) 0 idle, 2 normal to 5 highest\n\
   -b, --api-bind=port   IP:port for the miner API (default: 127.0.0.1:4068), 0 disabled\n\
       --api-remote      Allow remote control, like pool switching, imply --api-allow=0/0\n\
@@ -410,7 +418,6 @@ struct option options[] = {
 	{ "cert", 1, NULL, 1001 },
 	{ "config", 1, NULL, 'c' },
 	{ "cputest", 0, NULL, 1006 },
-	{ "cpu-affinity", 1, NULL, 1020 },
 	{ "cpu-priority", 1, NULL, 1021 },
 	{ "cuda-schedule", 1, NULL, 1025 },
 	{ "debug", 0, NULL, 'D' },
@@ -541,47 +548,48 @@ static inline void drop_policy(void) {
 #endif
 }
 
-static void affine_to_cpu_mask(int id, unsigned long mask) {
+static void affine_to_cpu(int id) {
 	cpu_set_t set;
 	CPU_ZERO(&set);
-	for (uint8_t i = 0; i < num_cpus; i++) {
-		// cpu mask
-		if (mask & (1UL<<i)) { CPU_SET(i, &set); }
-	}
-	if (id == -1) {
-		// process affinity
-		sched_setaffinity(0, sizeof(&set), &set);
-	} else {
-		// thread only
+	CPU_SET(id, &set);
+	// thread only
 #if !(defined(__ANDROID__) || (__ANDROID_API__ > 23))
 		pthread_setaffinity_np(thr_info[id].pth, sizeof(&set), &set);
 #else
 		sched_setaffinity(0, sizeof(&set), &set);
 #endif
-	}
 }
 #elif defined(__FreeBSD__) /* FreeBSD specific policy and affinity management */
 #include <sys/cpuset.h>
 static inline void drop_policy(void) { }
-static void affine_to_cpu_mask(int id, unsigned long mask) {
+static void affine_to_cpu(int id) {
 	cpuset_t set;
 	CPU_ZERO(&set);
-	for (uint8_t i = 0; i < num_cpus; i++) {
-		if (mask & (1UL<<i)) CPU_SET(i, &set);
-	}
+	CPU_SET(id, &set);
 	cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(cpuset_t), &set);
 }
 #elif defined(WIN32) /* Windows */
+int getGroupIndex(int &processorIndex)
+{
+	WORD groupCount = GetActiveProcessorGroupCount();
+	for (WORD i = 0; i < groupCount; i++)
+	{
+		WORD count = GetActiveProcessorCount(i);
+		if(count > processorIndex) return i;
+		processorIndex -= count;
+	}
+	return -1;
+}
 static inline void drop_policy(void) { }
-static void affine_to_cpu_mask(int id, unsigned long mask) {
-	if (id == -1)
-		SetProcessAffinityMask(GetCurrentProcess(), mask);
-	else
-		SetThreadAffinityMask(GetCurrentThread(), mask);
+static void affine_to_cpu(int id) {
+	GROUP_AFFINITY group_affinity = {0};
+	group_affinity.Group = getGroupIndex(id);
+	group_affinity.Mask = 1ull << (uint64_t)id;
+	SetThreadGroupAffinity(GetCurrentThread(), &group_affinity, nullptr);
 }
 #else /* Martians */
 static inline void drop_policy(void) { }
-static void affine_to_cpu_mask(int id, uint8_t mask) { }
+static void affine_to_cpu(int id) { }
 #endif
 
 static bool get_blocktemplate(CURL *curl, struct work *work);
@@ -1914,17 +1922,7 @@ static void *miner_thread(void *userdata)
 
 	/* Cpu thread affinity */
 	if (num_cpus > 1) {
-		if (opt_affinity == -1L && opt_n_threads > 1) {
-			if (opt_debug)
-				applog(LOG_DEBUG, "Binding thread %d to cpu %d (mask %x)", thr_id,
-						thr_id % num_cpus, (1UL << (thr_id % num_cpus)));
-			affine_to_cpu_mask(thr_id, 1 << (thr_id % num_cpus));
-		} else if (opt_affinity != -1L) {
-			if (opt_debug)
-				applog(LOG_DEBUG, "Binding thread %d to cpu mask %lx", thr_id,
-						(long) opt_affinity);
-			affine_to_cpu_mask(thr_id, (unsigned long) opt_affinity);
-		}
+		affine_to_cpu(thr_id);
 	}
 
 	//gpu_led_off(dev_id);
@@ -2742,10 +2740,10 @@ static void *miner_thread(void *userdata)
 			for (int i = 0; i < opt_n_threads && thr_hashrates[i]; i++)
 				hashrate += stats_get_speed(i, thr_hashrates[i]);
 			pthread_mutex_unlock(&stats_lock);
-			if (opt_benchmark && bench_algo == -1 && loopcnt > 2) {
+			/*if (opt_benchmark && bench_algo == -1 && loopcnt > 2) {
 				format_hashrate(hashrate, s);
 				applog(LOG_NOTICE, "Total: %s", s);
-			}
+			}*/
 
 			// since pool start
 			pools[cur_pooln].work_time = (uint32_t) (time(NULL) - firstwork_time);
@@ -3119,7 +3117,7 @@ wait_stratum_url:
 			}
 			pthread_mutex_unlock(&g_work_lock);
 		}
-		
+
 		// check we are on the right pool
 		if (switchn != pool_switch_count) goto pool_switched;
 
@@ -3718,13 +3716,6 @@ void parse_arg(int key, char *arg)
 	case 1019: // max-log-rate
 		opt_maxlograte = atoi(arg);
 		break;
-	case 1020:
-		p = strstr(arg, "0x");
-		ul = p ? strtoul(p, NULL, 16) : atol(arg);
-		if (ul > (1UL<<num_cpus)-1)
-			ul = -1L;
-		opt_affinity = ul;
-		break;
 	case 1021:
 		v = atoi(arg);
 		if (v < 0 || v > 5)	/* sanity check */
@@ -4044,6 +4035,10 @@ int main(int argc, char *argv[])
 	pthread_mutex_init(&g_work_lock, NULL);
 
 	// number of cpus for thread affinity
+#if ((defined(_MSVC_LANG) && _MSVC_LANG >= 201103L) || __cplusplus >= 201103L)
+	num_cpus = std::thread::hardware_concurrency();
+#else
+#warning num_cpus may be wrong
 #if defined(WIN32)
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
@@ -4056,6 +4051,7 @@ int main(int argc, char *argv[])
 	sysctl(req, 2, &num_cpus, &len, NULL, 0);
 #else
 	num_cpus = 1;
+#endif
 #endif
 	if (num_cpus < 1)
 		num_cpus = 1;
@@ -4199,11 +4195,6 @@ int main(int argc, char *argv[])
 	// Enable windows high precision timer
 	timeBeginPeriod(1);
 #endif
-	if (opt_affinity != -1) {
-		if (!opt_quiet)
-			applog(LOG_DEBUG, "Binding process to cpu mask %x", opt_affinity);
-		affine_to_cpu_mask(-1, (unsigned long)opt_affinity);
-	}
 	if (active_gpus == 0) {
 		applog(LOG_ERR, "No CUDA devices found! terminating.");
 		exit(1);
