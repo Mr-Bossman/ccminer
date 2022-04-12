@@ -165,6 +165,7 @@ void haraka256_4x(unsigned char *out, const unsigned char *in) {
   s[2][0] = LOAD(in + 64);
   s[2][1] = LOAD(in + 80);
   s[3][0] = LOAD(in + 96);
+  s[3][1] = LOAD(in + 112);
 
 
   MIX2(s[0][0], s[0][1]);

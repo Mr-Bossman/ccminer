@@ -11,9 +11,13 @@
 #include <stdexcept>
 #include <vector>
 #define VERUS_KEY_SIZE 8832
-#define VERUS_KEY_SIZE128 552
 #include <miner.h>
 #include "portability.h"
+
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
 
 enum
 {
@@ -91,7 +95,8 @@ extern "C" inline void FixKey(u128 **pMoveScratch)
 
 		if (len - pos >= room)
 		{
-			memcpy(curBuf + 32 + curPos, data + pos, room);
+			_mm_store_si128((u128*)(curBuf + 32 + curPos),_mm_load_si128((u128*)(data + pos)));
+			_mm_store_si128((u128*)(curBuf + 48 + curPos),_mm_load_si128((u128*)(data + pos + 16)));
 			haraka512(result, curBuf);
 			unsigned char *tmp = curBuf;
 			curBuf = result;
@@ -108,8 +113,7 @@ extern "C" inline void FixKey(u128 **pMoveScratch)
 	}
 
 	//memcpy(curBuf + 47, curBuf, 16);
-	((uint64_t*)(curBuf + 47))[0] = ((uint64_t*)curBuf)[0];
-	((uint64_t*)(curBuf + 47))[1] = ((uint64_t*)curBuf)[1];
+	_mm_store_si128((u128*)(curBuf + 47),_mm_load_si128((u128*)curBuf));
 	curBuf[63] = curBuf[0];
 	//memcpy(curBuf + 63, curBuf, 1);
 	//	FillExtra((u128 *)curBuf);
@@ -148,7 +152,7 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 
 	uint8_t _ALIGN(32)  blockhash_half[64] = { 0 };
 	u128 data_key[(VERUS_KEY_SIZE << 1)/sizeof(u128)] = {0};
-	u128 ** pMoveScratch = (__m128i **)((unsigned char *)data_key + (VERUS_KEY_SIZE + 8192));
+	u128 ** pMoveScratch = (u128 **)((unsigned char *)data_key + (VERUS_KEY_SIZE + 8192));
 	uint32_t nonce_buf = 0;
 	uint32_t _ALIGN(64) vhash[8] = { 0 };
 
@@ -156,7 +160,7 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 	uint8_t* full_data =  work->fulldata;
 
 	memcpy(full_data + 140, block_41970, 3);
-	memcpy(full_data + 143, &work->hash_ver, 4);
+	*((u32*)(full_data + 143)) = work->hash_ver;
 	/* loads consts */
 	shuf1 = _mm_setr_epi8(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0);
 	shuf2 = _mm_setr_epi8(1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0);
@@ -166,7 +170,11 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 	VerusHashHalf(blockhash_half, (unsigned char*)full_data, 1487);
 
 	GenNewCLKey((unsigned char*)blockhash_half, data_key);  //data_key a global static 2D array data_key[16][8832];
-        memcpy((unsigned char *)data_key + VERUS_KEY_SIZE, data_key, 8192);
+	// memcpy((unsigned char *)data_key + VERUS_KEY_SIZE, data_key, 8192);
+	for(uint16_t i = 0; i < 512; i+= 1){
+		u128* tmp = (u128*)((u8*)data_key + VERUS_KEY_SIZE);
+		_mm_store_si128(tmp + i,_mm_load_si128(data_key + i));
+	}
        // memset(pMoveScratch, 0, VERUS_KEY_SIZE - 8192);
 
 
@@ -194,7 +202,6 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 		nonce_buf += throughput;
 
 	} while (!work_restart[thr_id].restart);
-
 	pdata[NONCE_OFT] = ((uint32_t*)full_data)[NONCE_OFT] + 1;
 	return work->valid_nonces;
 }

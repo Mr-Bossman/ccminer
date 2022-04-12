@@ -310,43 +310,44 @@ inline u128 __verusclmulwithoutreduction64alignedrepeatv2_2(u128 *randomsource, 
 	// be used to xor into the accumulator before it is hashed with other values first
 	u128 acc = _mm_load_si128(randomsource + (keyMask + 2));
 	#if 1
-	for (int64_t i = 0; i < 32; i++)
+	for (int64_t i = 0; i < 32; i+=1)
 	{
 		verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,i);
+		//verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,i+1);
 	}
 	#else
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,0);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,1);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,2);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,3);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,4);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,5);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,6);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,7);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,8);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,9);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,10);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,11);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,12);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,13);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,14);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,15);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,16);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,17);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,18);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,19);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,20);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,21);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,22);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,23);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,24);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,25);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,26);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,27);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,28);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,29);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,30);
-	verus2_2round(randomsource,fixrand,fixrandex,g_prand,g_prandex,pbuf,pbuf_copy,acc,31);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,0);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,1);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,2);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,3);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,4);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,5);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,6);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,7);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,8);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,9);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,10);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,11);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,12);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,13);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,14);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,15);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,16);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,17);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,18);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,19);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,20);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,21);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,22);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,23);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,24);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,25);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,26);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,27);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,28);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,29);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,30);
+	verus2_2round(randomsource,pMoveScratch,pbuf,pbuf_copy,acc,31);
 	#endif
 	return acc;
 }
