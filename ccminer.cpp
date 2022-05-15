@@ -1789,6 +1789,7 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 			equi_work_set_target(work, sctx->job.diff / opt_difficulty);
 			break;
 		case ALGO_VERUS:
+			memcpy(work->target, sctx->job.extra, 32);
 			verus_work_set_target(work, sctx->job.diff / opt_difficulty);
 			break;
 		default:
