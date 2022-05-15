@@ -1,5 +1,5 @@
 # allow to use Host cuda functions in C/C++
-DEF_INCLUDES = @CUDA_INCLUDES@  -Iopenssl/include -Icurl/include -Ijansson/src -Izlib
+DEF_INCLUDES = @CUDA_INCLUDES@  -Issl/include -Icurl/include -Ijansson/src -Izlib
 
 EXTRA_DIST	= autogen.sh README.md README.txt LICENSE.txt \
 		  ccminer.sln ccminer.vcxproj ccminer.vcxproj.filters \
@@ -28,7 +28,7 @@ ccminer_SOURCES += compat/winansi.c
 endif
 
 ccminer_LDFLAGS  = $(PTHREAD_FLAGS) @CUDA_LDFLAGS@
-ccminer_LDADD    = ./curl/lib/.libs/libcurl.a ./jansson/src/.libs/libjansson.a ./zlib/libz.a ./openssl/libssl.a ./openssl/libcrypto.a -ldl @PTHREAD_LIBS@ @WS2_LIBS@ @CUDA_LIBS@ @OPENMP_CFLAGS@ @LIBS@ $(nvml_libs)
+ccminer_LDADD    = ./curl/lib/.libs/libcurl.a ./jansson/src/.libs/libjansson.a ./zlib/libz.a ./ssl/lib*/libssl.a ./ssl/lib*/libcrypto.a -ldl @PTHREAD_LIBS@ @WS2_LIBS@ @CUDA_LIBS@ @OPENMP_CFLAGS@ @LIBS@ $(nvml_libs)
 ccminer_CPPFLAGS =  @OPENMP_CFLAGS@  @ARCH_FLAGS@ $(CPPFLAGS) $(PTHREAD_FLAGS) -fno-strict-aliasing $(DEF_INCLUDES) $(nvml_defs)
 ccminer_CXXFLAGS = -std=c++11  @ARCH_FLAGS@  $(DEF_INCLUDES)
 ccminer_CFLAGS = @ARCH_FLAGS@ $(DEF_INCLUDES)
