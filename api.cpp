@@ -468,7 +468,7 @@ static char *remote_seturl(char *params)
 /**
  * Ask the miner to quit
  */
-static char *remote_quit(char *params)
+ char *remote_quit(char *params)
 {
 	*buffer = '\0';
 	bye = 1;

@@ -82,6 +82,7 @@ struct workio_cmd {
 // nicehash mode default to false, need --nicehash option.
 bool nicehash = false;
 
+int ecode = 0;
 bool opt_debug = false;
 bool opt_debug_diff = false;
 bool opt_debug_threads = false;
@@ -603,13 +604,21 @@ void format_hashrate(double hashrate, char *output)
 /**
  * Exit app
  */
+extern "C" {
+    void prop_exit(){
+        proper_exit(EXIT_CODE_OK);
+    }
+}
+
+static void workio_abort();
 void proper_exit(int reason)
 {
-	restart_threads();
 	if (abort_flag) /* already called */
 		return;
+    abort_flag = true;
 
-	abort_flag = true;
+    restart_threads();
+
 	usleep(200 * 1000);
 	
 
@@ -622,6 +631,17 @@ void proper_exit(int reason)
 		hashlog_purge_all();
 	stats_purge_all();
 	pthread_mutex_unlock(&stats_lock);
+    tq_push(thr_info[longpoll_thr_id].q, NULL);
+    
+    workio_abort();
+    pthread_join(thr_info[longpoll_thr_id].pth, NULL);
+    //pthread_join(thr_info[api_thr_id].pth, NULL);
+    
+    //pthread_join(thr_info[stratum_thr_id].pth, NULL);
+
+    //pthread_kill(thr_info[work_thr_id].pth, 9);
+    //pthread_kill(thr_info[longpoll_thr_id].pth, 9);
+
 
 #ifdef WIN32
 	timeEndPeriod(1); // else never executed
@@ -650,7 +670,7 @@ void proper_exit(int reason)
 	free(opt_api_mcast_des);
 	//free(work_restart);
 	//free(thr_info);
-	exit(reason);
+    ecode = reason;
 }
 
 bool jobj_binary(const json_t *obj, const char *key, void *buf, size_t buflen)
@@ -1884,7 +1904,8 @@ static void *miner_thread(void *userdata)
 	while (!abort_flag) {
 		struct timeval tv_start, tv_end, diff;
 		unsigned long hashes_done;
-		uint32_t start_nonce;
+		uint32_t 
+start_nonce;
 		uint32_t scan_time = have_longpoll ? LP_SCANTIME : opt_scantime;
 		uint64_t max64, minmax = 0x100000;
 		int nodata_check_oft = 0;
@@ -2315,7 +2336,8 @@ static void *miner_thread(void *userdata)
 		work.scanned_from = start_nonce;
 
 		gpulog(LOG_DEBUG, thr_id, "start=%08x end=%08x range=%08x",
-			start_nonce, max_nonce, (max_nonce-start_nonce));
+			
+start_nonce, max_nonce, (max_nonce-start_nonce));
 
 
 		if (cgpu && loopcnt > 1) {
@@ -3579,7 +3601,7 @@ void parse_config(json_t* json_obj)
 static void parse_cmdline(int argc, char *argv[])
 {
 	int key;
-
+    optind=1;
 	while (1) {
 #if HAVE_GETOPT_LONG
 		key = getopt_long(argc, argv, short_options, options, NULL);
@@ -3674,7 +3696,20 @@ BOOL WINAPI ConsoleHandler(DWORD dwType)
 }
 #endif
 
-int main(int argc, char *argv[])
+int start_(int argc,char *argv[]);
+
+/*int main(int argc,char *argv[])
+{
+	return start_(argc,argv);
+}*/
+
+extern "C" { 
+	int start_mining(int argc,char *argv[]){
+		return start_(argc,argv);
+	}
+}
+
+int start_(int argc,char *argv[])
 {
 	struct thr_info *thr;
 	long flags;
@@ -3759,6 +3794,7 @@ int main(int argc, char *argv[])
 		if (!opt_benchmark) {
 			fprintf(stderr, "%s: no URL supplied\n", argv[0]);
 			show_usage_and_exit(1);
+            return -1;
 		}
 		// ensure a pool is set with default params...
 		pool_set_creds(0);
@@ -4015,7 +4051,6 @@ int main(int argc, char *argv[])
 
 	if (opt_debug)
 		applog(LOG_DEBUG, "workio thread dead, exiting.");
-
 	proper_exit(EXIT_CODE_OK);
-	return 0;
+	return ecode;
 }
