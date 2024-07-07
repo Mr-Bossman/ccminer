@@ -89,7 +89,7 @@ void *alloc_aligned_buffer(uint64_t bufSize);
 #ifdef __cplusplus
 
 #include <vector>
-#include <string>
+//#include <string>
 
 // special high speed hasher for VerusHash 2.0
 
