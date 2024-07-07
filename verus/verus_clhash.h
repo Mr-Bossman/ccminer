@@ -24,7 +24,7 @@
 //#include <intrin.h>
 
 #ifndef _WIN32
-#include <cpuid.h>
+//#include <cpuid.h>
 #else
 #include <intrin.h>
 #endif // !WIN32
@@ -65,58 +65,8 @@ extern int __cpuverusoptimized;
 
 inline bool IsCPUVerusOptimized()
 {
-
-#ifndef _WIN32
-	unsigned int eax, ebx, ecx, edx;
-
-	if (!__get_cpuid(1, &eax, &ebx, &ecx, &edx))
-	{
-		return false;
-	}
-	return ((ecx & (bit_AVX | bit_AES)) == (bit_AVX | bit_AES));
-#else
-
-	// https://github.com/gcc-mirror/gcc/blob/master/gcc/config/i386/cpuid.h
-#define bit_AVX		(1 << 28)
-#define bit_AES		(1 << 25)
-	// https://insufficientlycomplicated.wordpress.com/2011/11/07/detecting-intel-advanced-vector-extensions-avx-in-visual-studio/
-	// bool cpuAVXSuport = cpuInfo[2] & (1 << 28) || false;
-
-	int cpuInfo[4];
-	__cpuid(cpuInfo, 1);
-	return ((cpuInfo[2] & (bit_AVX | bit_AES)) == (bit_AVX | bit_AES));
-
-#endif
-
-
-    if (__cpuverusoptimized & 0x80)
-    {
-#ifdef _WIN32
-        #define bit_AVX		(1 << 28)
-        #define bit_AES		(1 << 25)
-        #define bit_PCLMUL  (1 << 1)
-        // https://insufficientlycomplicated.wordpress.com/2011/11/07/detecting-intel-advanced-vector-extensions-avx-in-visual-studio/
-        // bool cpuAVXSuport = cpuInfo[2] & (1 << 28) || false;
-
-        int cpuInfo[4];
-		__cpuid(cpuInfo, 1);
-        __cpuverusoptimized = ((cpuInfo[2] & (bit_AVX | bit_AES | bit_PCLMUL)) == (bit_AVX | bit_AES | bit_PCLMUL));
-#else
-        unsigned int eax,ebx,ecx,edx;
-
-        if (!__get_cpuid(1,&eax,&ebx,&ecx,&edx))
-        {
-            __cpuverusoptimized = false;
-        }
-        else
-        {
-            __cpuverusoptimized = ((ecx & (bit_AVX | bit_AES | bit_PCLMUL)) == (bit_AVX | bit_AES | bit_PCLMUL));
-        }
-#endif //WIN32
-    }
-    return __cpuverusoptimized;
-
-};
+	return true;
+}
 
 inline void ForceCPUVerusOptimized(bool trueorfalse)
 {
