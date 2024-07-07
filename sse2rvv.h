@@ -3588,6 +3588,79 @@ FORCE_INLINE __m128i _mm_xor_si128(__m128i a, __m128i b) {
 
 /* AES */
 
+#include "softaesnc.h"
+FORCE_INLINE __m128i _mm_aesenc_si128(__m128i a, __m128i RoundKey)
+{
+  __m128i result;
+
+  aesb_single_round((const uint8_t *)(&a), (uint8_t *)(&result), (uint8_t *)(&RoundKey));
+
+  return result;
+}
+
+inline __m128i _mm_cvtsi64_si128(uint64_t lo)
+{
+  __m128i result;
+  ((uint64_t *)&result)[0] = lo;
+  ((uint64_t *)&result)[1] = 0;
+  return result;
+}
+
+inline int64_t _mm_cvtsi128_si64(__m128i a)
+{
+  return *(int64_t *)&a;
+}
+
+inline __m128i _mm_cvtsi32_si128(uint32_t lo)
+{
+	__m128i result;
+	((uint32_t *)&result)[0] = lo;
+	((uint32_t *)&result)[1] = 0;
+	((uint64_t *)&result)[1] = 0;
+	return result;
+}
+
+inline void clmul64(uint64_t a, uint64_t b, uint64_t* r)
+{
+  uint8_t s = 4, i; //window size
+  uint64_t two_s = 1 << s; //2^s
+  uint64_t smask = two_s - 1; //s 1 bits
+  uint64_t u[16];
+  uint64_t tmp;
+  uint64_t ifmask;
+  //Precomputation
+  u[0] = 0;
+  u[1] = b;
+  for (i = 2; i < two_s; i += 2) {
+    u[i] = u[i >> 1] << 1; //even indices: left shift
+    u[i + 1] = u[i] ^ b; //odd indices: xor b
+  }
+  //Multiply
+  r[0] = u[a & smask]; //first window only affects lower word
+  r[1] = 0;
+  for (i = s; i < 64; i += s) {
+    tmp = u[a >> i & smask];
+    r[0] ^= tmp << i;
+    r[1] ^= tmp >> (64 - i);
+  }
+  //Repair
+  uint64_t m = 0xEEEEEEEEEEEEEEEE; //s=4 => 16 times 1110
+  for (i = 1; i < s; i++) {
+    tmp = ((a & m) >> i);
+    m &= m << 1; //shift mask to exclude all bit j': j' mod s = i
+    ifmask = -((b >> (64 - i)) & 1); //if the (64-i)th bit of b is 1
+    r[1] ^= (tmp & ifmask);
+  }
+}
+
+
+inline __m128i _mm_clmulepi64_si128(const __m128i a, const __m128i b, int imm)
+{
+  uint64_t result[2];
+  clmul64(*((uint64_t*)&a + (imm & 1)), *((uint64_t*)&b + ((imm & 0x10) >> 4)), result);
+  return *(__m128i *)result;
+}
+
 // In the absence of crypto extensions, implement aesenc using regular NEON
 // intrinsics instead. See:
 // https://www.workofard.com/2017/01/accelerated-aes-for-the-arm64-linux-kernel/

@@ -363,7 +363,7 @@ uint64_t verusclhashv2_2(void * random, const unsigned char buf[64], uint64_t ke
 void *alloc_aligned_buffer(uint64_t bufSize)
 {
 	void *answer = NULL;
-	if (posix_memalign(&answer, sizeof(__m256i), bufSize))
+	if (posix_memalign(&answer, 32, bufSize))
 	{
 		return NULL;
 	}
