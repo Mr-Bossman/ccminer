@@ -19,6 +19,7 @@ Issue Date: 20/12/2007
 */
 
 #include <stdint.h>
+#include <stdalign.h>
 
 #if defined(__cplusplus)
 extern "C"
@@ -31,13 +32,8 @@ extern "C"
 #define AES_BLOCK_SIZE  16
 #define RC_LENGTH       (5 * (AES_BLOCK_SIZE / 4 - 2))
 
-#if defined(_MSC_VER)
-#define ALIGN __declspec(align(TABLE_ALIGN))
-#elif defined(__GNUC__)
-#define ALIGN __attribute__ ((aligned(16)))
-#else
-#define ALIGN
-#endif
+#define ALIGN alignas(128)
+
 
 #define rf1(r,c) (r)
 #define word_in(x,c) (*((uint32_t*)(x)+(c)))
@@ -134,7 +130,7 @@ y[3] = (k)[3]  ^ (t_fn[0][x[3] & 0xff] ^ t_fn[1][(x[0] >> 8) & 0xff] ^ t_fn[2][(
 #define t_set(m,n) t_##m##n
 #define t_use(m,n) t_##m##n
 
-#define d_4(t,n,b,e,f,g,h) ALIGN const t n[4][256] = { b(e), b(f), b(g), b(h) }
+#define d_4(t,n,b,e,f,g,h) ALIGN static const t n[4][256] = { b(e), b(f), b(g), b(h) }
 
 #define four_tables(x,tab,vf,rf,c) \
     (tab[0][bval(vf(x,0,c),rf(0,c))] \

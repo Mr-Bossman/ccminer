@@ -165,14 +165,15 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 	uint8_t blockhash_half[64] = { 0 };
 	uint8_t gpuinit = 0;
 	struct timeval tv_start, tv_end;
-	uint8_t *data_key_temp = (uint8_t *)malloc(VERUS_KEY_SIZE + 1024);
+	uint8_t *data_key_temp = (uint8_t *)aligned_alloc(32, VERUS_KEY_SIZE + 1024);
+	printf("data_key_temp: %p\n", data_key_temp);
 	u128 *data_key =  (u128*)data_key_temp;
 	u128 *data_key_prand = (u128*)(data_key_temp + VERUS_KEY_SIZE);
 	u128 *data_key_prandex = (u128*)(data_key_temp + VERUS_KEY_SIZE + 512);
 
 	uint32_t nonce_buf = 0;
-	uint32_t fixrand[32];
-	uint32_t fixrandex[32];
+	uint32_t fixrand[32] = { 0 };
+	uint32_t fixrandex[32] = { 0 };
 
 	unsigned char block_41970[3] = { 0xfd, 0x40, 0x05};
 	uint8_t  full_data[140 + 3 + 1344] = { 0 };
@@ -245,7 +246,7 @@ out:
 
 
 	pdata[NONCE_OFT] = ((uint32_t*)full_data)[NONCE_OFT] + 1;
-	free(data_key);
+	free(data_key_temp);
 
 	return work->valid_nonces;
 }

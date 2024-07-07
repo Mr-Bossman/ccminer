@@ -57,10 +57,13 @@ uint64_t precompReduction64(__m128i A) {
 	return _mm_cvtsi128_si64(precompReduction64_si128(A));
 }
 
-#define __m128i_u8_index(u8_ptr, i) (*((__m128i *)(&u8_ptr[i*16])))
-#define __m128i_index(ptr, i) (*((__m128i *)(&((uint8_t*)ptr)[i*16])))
+#define __m128i_u8_index(u8_ptr, i) (*((__m128i *)(&(u8_ptr)[(i)*16])))
+#define __m128i_index(ptr, i) (*((__m128i *)(&((uint8_t*)(ptr))[(i)*16])))
+#define __m128i_index_ptr(ptr, i) ((__m128i *)(&((uint8_t*)(ptr))[(i)*16]))
+#define __m128i_u8_index_ptr(u8_ptr, i) ((__m128i *)(&(u8_ptr)[(i)*16]))
 
-#define pbuf_copy(i) (*((__m128i *)(&_pbuf_copy[i*16])))
+#define pbuf_copy(i) (*((__m128i *)(&_pbuf_copy[(i)*16])))
+#define pbuf_copy_ptr(i) ((__m128i *)(&_pbuf_copy[(i)*16]))
 
 __m128i __verusclmulwithoutreduction64alignedrepeatv2_2(uint8_t * randomsource, const uint8_t buf[64], uint64_t keyMask,
 	uint32_t *fixrand, uint32_t *fixrandex, u128 *g_prand, u128 *g_prandex)
@@ -84,7 +87,7 @@ __m128i __verusclmulwithoutreduction64alignedrepeatv2_2(uint8_t * randomsource, 
 	// algorithm. we take the value from the last element inside the keyMask + 2, as that will never
 	// be used to xor into the accumulator before it is hashed with other values first
 	__m128i acc = __m128i_u8_index(randomsource, (keyMask + 2));
-
+	printf("randomsource: %p\n", randomsource);
 	for (int64_t i = 0; i < 32; i++)
 	{
 		const uint64_t selector = _mm_cvtsi128_si64(acc);
@@ -92,13 +95,14 @@ __m128i __verusclmulwithoutreduction64alignedrepeatv2_2(uint8_t * randomsource, 
 		uint32_t prand_idx = (selector >> 5) & keyMask;
 		uint32_t prandex_idx = (selector >> 32) & keyMask;
 		// get two random locations in the key, which will be mutated and swapped
-		__m128i *prand = &__m128i_u8_index(randomsource, prand_idx);
-		__m128i *prandex = &__m128i_u8_index(randomsource, prandex_idx);
+		__m128i *prand = __m128i_u8_index_ptr(randomsource, prand_idx);
+		__m128i *prandex = __m128i_u8_index_ptr(randomsource, prandex_idx);
 
 		// select random start and order of pbuf processing
-		pbuf = &pbuf_copy(selector & 3);
-		_mm_store_si128(&__m128i_index(g_prand, i), *prand);
-		_mm_store_si128(&__m128i_index(g_prandex, i), *prandex);
+		pbuf = pbuf_copy_ptr(selector & 3);
+		printf("g_prand: %p\n", __m128i_index_ptr(g_prand, i));
+		__m128i_index(g_prand, i) = pbuf_copy(0);
+		__m128i_index(g_prandex, i) = 0;
 		fixrand[i] = prand_idx;
 		fixrandex[i] = prandex_idx;
 
@@ -251,7 +255,7 @@ __m128i __verusclmulwithoutreduction64alignedrepeatv2_2(uint8_t * randomsource, 
 		case 0x14:
 		{
 			// we'll just call this one the monkins loop, inspired by Chris - modified to cast to uint64_t on shift for more variability in the loop
-			const __m128i *buftmp = &__m128i_index(pbuf, (selector & 1) ? -1 : 1);
+			const __m128i *buftmp = __m128i_index_ptr(pbuf, (selector & 1) ? -1 : 1);
 			__m128i tmp; // used by MIX2
 
 			uint64_t rounds = selector >> 61; // loop randomly between 1 and 8 times
@@ -294,7 +298,7 @@ __m128i __verusclmulwithoutreduction64alignedrepeatv2_2(uint8_t * randomsource, 
 		}
 		case 0x18:
 		{
-			const __m128i *buftmp = &__m128i_index(pbuf, (selector & 1) ? -1 : 1);
+			const __m128i *buftmp = __m128i_index_ptr(pbuf, (selector & 1) ? -1 : 1);
 			__m128i tmp; // used by MIX2
 
 			uint64_t rounds = selector >> 61; // loop randomly between 1 and 8 times
