@@ -33,8 +33,7 @@ endif
 ccminer_LDFLAGS  = $(PTHREAD_FLAGS)
 
 ccminer_LDADD    = -lcurl @JANSSON_LIBS@ @PTHREAD_LIBS@ @WS2_LIBS@ @OPENMP_CFLAGS@ @LIBS@
-ccminer_CPPFLAGS = @OPENMP_CFLAGS@ $(CPPFLAGS) $(PTHREAD_FLAGS) -march=native -fno-strict-aliasing $(JANSSON_INCLUDES) $(DEF_INCLUDES) -O2
-
+ccminer_CPPFLAGS = @OPENMP_CFLAGS@ $(CPPFLAGS) $(PTHREAD_FLAGS) $(JANSSON_INCLUDES) $(DEF_INCLUDES) -march=rv64gv_zicsr_zifencei_zihintpause -fno-strict-aliasing
 
 if HAVE_OSX
 ccminer_CXXFLAGS = -std=c++11
