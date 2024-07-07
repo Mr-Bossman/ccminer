@@ -69,14 +69,16 @@ extern "C" inline void GenNewCLKey(unsigned char *seedBytes32, u128 *keyback)
 	}
 }
 
+#define __m128i_index(ptr, i) (*((__m128i *)(&((uint8_t*)ptr)[i*16])))
+
 extern "C" inline void FixKey(uint32_t *fixrand, uint32_t *fixrandex, u128 *keyback,
 	u128 * g_prand, u128 *g_prandex)
 {
 
 	for (int i = 31; i > -1; i--)
 	{
-		keyback[fixrandex[i]] = g_prandex[i];
-		keyback[fixrand[i]] = g_prand[i];
+		__m128i_index(keyback, fixrandex[i]) = __m128i_index(g_prandex, i);
+		__m128i_index(keyback, fixrand[i]) = __m128i_index(g_prand, i);
 	}
 
 }
@@ -134,9 +136,9 @@ extern "C" void inline Verus2hash(unsigned char *hash, unsigned char *curBuf, un
 	u128 *g_prandex, int version)
 {
 	//uint64_t mask = VERUS_KEY_SIZE128; //552
-	static const __m128i shuf1 = _mm_setr_epi8(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0);
+	const __m128i shuf1 = _mm_setr_epi8(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0);
 	const __m128i fill1 = _mm_shuffle_epi8(_mm_load_si128((u128 *)curBuf), shuf1);
-	static const __m128i shuf2 = _mm_setr_epi8(1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0);
+	const __m128i shuf2 = _mm_setr_epi8(1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0);
 	unsigned char ch = curBuf[0];
 	_mm_store_si128((u128 *)(&curBuf[32 + 16]), fill1);
 	curBuf[32 + 15] = ch;
@@ -150,7 +152,7 @@ extern "C" void inline Verus2hash(unsigned char *hash, unsigned char *curBuf, un
 	_mm_store_si128((u128 *)(&curBuf[32 + 16]), fill2);
 	curBuf[32 + 15] = *((unsigned char *)&intermediate);
 	intermediate &= 511;
-	haraka512_keyed(hash, curBuf, data_key + intermediate);
+	haraka512_keyed(hash, curBuf, &__m128i_index(data_key, intermediate));
 	FixKey(fixrand, fixrandex, data_key, g_prand, g_prandex);
 }
 
@@ -163,9 +165,10 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 	uint8_t blockhash_half[64] = { 0 };
 	uint8_t gpuinit = 0;
 	struct timeval tv_start, tv_end;
-	u128 *data_key =  (u128*)malloc(VERUS_KEY_SIZE + 1024);
-	u128 *data_key_prand = data_key + VERUS_KEY_SIZE128 ;
-	u128 *data_key_prandex = data_key + VERUS_KEY_SIZE128 + 32;
+	uint8_t *data_key_temp = (uint8_t *)malloc(VERUS_KEY_SIZE + 1024);
+	u128 *data_key =  (u128*)data_key_temp;
+	u128 *data_key_prand = (u128*)(data_key_temp + VERUS_KEY_SIZE);
+	u128 *data_key_prandex = (u128*)(data_key_temp + VERUS_KEY_SIZE + 512);
 
 	uint32_t nonce_buf = 0;
 	uint32_t fixrand[32];
