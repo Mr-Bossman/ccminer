@@ -18,6 +18,7 @@
 **/
 
 
+#include <stdio.h>
 #include "verus_clhash.h"
 
 
@@ -87,7 +88,7 @@ __m128i __verusclmulwithoutreduction64alignedrepeatv2_2(uint8_t * randomsource, 
 	// algorithm. we take the value from the last element inside the keyMask + 2, as that will never
 	// be used to xor into the accumulator before it is hashed with other values first
 	__m128i acc = __m128i_u8_index(randomsource, (keyMask + 2));
-	printf("randomsource: %p\n", randomsource);
+
 	for (int64_t i = 0; i < 32; i++)
 	{
 		const uint64_t selector = _mm_cvtsi128_si64(acc);
@@ -100,9 +101,11 @@ __m128i __verusclmulwithoutreduction64alignedrepeatv2_2(uint8_t * randomsource, 
 
 		// select random start and order of pbuf processing
 		pbuf = pbuf_copy_ptr(selector & 3);
-		printf("g_prand: %p\n", __m128i_index_ptr(g_prand, i));
-		__m128i_index(g_prand, i) = pbuf_copy(0);
-		__m128i_index(g_prandex, i) = 0;
+
+		__m128i_index(g_prand, i) = *prand;
+		__m128i_index(g_prandex, i) = *prandex;
+//		__m128i_index(g_prand, i) = *prand;
+//		__m128i_index(g_prandex, i) = *prandex;
 		fixrand[i] = prand_idx;
 		fixrandex[i] = prandex_idx;
 

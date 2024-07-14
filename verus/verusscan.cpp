@@ -4,6 +4,7 @@
 * tpruvot - 2017 (GPL v3)
 */
 #include <stdio.h>
+#include <iostream>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -145,7 +146,6 @@ extern "C" void inline Verus2hash(unsigned char *hash, unsigned char *curBuf, un
 	//	FillExtra((u128 *)curBuf);
 	uint64_t intermediate;
 	memcpy(curBuf + 32, nonce, 15);  //copy the 15bytes nonce
-
 	intermediate = verusclhashv2_2(data_key, curBuf, 511, fixrand, fixrandex, g_prand, g_prandex);
 		//FillExtra
 	__m128i fill2 = _mm_shuffle_epi8(_mm_loadl_epi64((u128 *)&intermediate), shuf2);
@@ -165,15 +165,16 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 	uint8_t blockhash_half[64] = { 0 };
 	uint8_t gpuinit = 0;
 	struct timeval tv_start, tv_end;
-	uint8_t *data_key_temp = (uint8_t *)aligned_alloc(32, VERUS_KEY_SIZE + 1024);
-	printf("data_key_temp: %p\n", data_key_temp);
+	uint8_t *data_key_temp = (uint8_t *)aligned_alloc(32, VERUS_KEY_SIZE + 1040);
+
 	u128 *data_key =  (u128*)data_key_temp;
+	memset(data_key_temp + VERUS_KEY_SIZE,0xff, 1024);
 	u128 *data_key_prand = (u128*)(data_key_temp + VERUS_KEY_SIZE);
 	u128 *data_key_prandex = (u128*)(data_key_temp + VERUS_KEY_SIZE + 512);
 
 	uint32_t nonce_buf = 0;
-	uint32_t fixrand[32] = { 0 };
-	uint32_t fixrandex[32] = { 0 };
+	uint32_t fixrand[32] = {0};
+	uint32_t fixrandex[32] = {0};
 
 	unsigned char block_41970[3] = { 0xfd, 0x40, 0x05};
 	uint8_t  full_data[140 + 3 + 1344] = { 0 };
@@ -197,6 +198,7 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 		memcpy(nonceSpace + 7, &pdata[EQNONCE_OFFSET + 2], 4 );	
 	}
 
+
 	uint32_t  vhash[8] = { 0 };
 
 	VerusHashHalf(blockhash_half, (unsigned char*)full_data, 1487);
@@ -216,8 +218,6 @@ extern "C" int scanhash_verus(int thr_id, struct work *work, uint32_t max_nonce,
 
 		Verus2hash((unsigned char *)vhash, (unsigned char *)blockhash_half, nonceSpace, data_key, 
 				&gpuinit, fixrand, fixrandex , data_key_prand, data_key_prandex, version);
-
-
 		if (vhash[7] <= Htarg )
 		{
 			work->valid_nonces++;

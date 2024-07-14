@@ -20,7 +20,6 @@ Issue Date: 20/12/2007
 
 #include <stdint.h>
 #include <stdalign.h>
-
 #if defined(__cplusplus)
 extern "C"
 {
