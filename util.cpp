@@ -1804,7 +1804,7 @@ static bool stratum_show_message(struct stratum_ctx *sctx, json_t *id, json_t *p
 
 	if (sctx->is_equihash && strcmp(algo, "verus"))
 		return verus_stratum_show_message(sctx, id, params);
-	else
+	else if (sctx->is_equihash)
 		return equi_stratum_show_message(sctx, id, params);
 
 	val = json_array_get(params, 0);
