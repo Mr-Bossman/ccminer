@@ -562,9 +562,11 @@ static void affine_to_cpu_mask(int id, unsigned long mask) {
 	else
 		SetThreadAffinityMask(GetCurrentThread(), mask);
 }
+static void affine_to_cpu(int id) { }
 #else /* Martians */
 static inline void drop_policy(void) { }
 static void affine_to_cpu_mask(int id, uint8_t mask) { }
+static void affine_to_cpu(int id) { }
 #endif
 
 static bool get_blocktemplate(CURL *curl, struct work *work);
