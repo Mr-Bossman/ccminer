@@ -3441,6 +3441,8 @@ int main(int argc, char *argv[])
 	long flags;
 	int i;
 
+	srand(time(NULL));
+
 	// get opt_quiet early
 	parse_single_opt('q', argc, argv);
 	
