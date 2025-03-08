@@ -2284,7 +2284,7 @@ static void *miner_thread(void *userdata)
 		if (!opt_quiet && loopcnt > 1 && (time(NULL) - tm_rate_log) > opt_maxlograte) {
 			format_hashrate(thr_hashrates[thr_id], s);
 			if(thr_hashrates[thr_id]>0)
-			gpulog(LOG_INFO, thr_id, "%s, %s", device_name[dev_id], s);
+			gpulog(LOG_INFO, thr_id, "%s", s);
 			tm_rate_log = time(NULL);
 		}
 
